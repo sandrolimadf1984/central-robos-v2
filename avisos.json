@@ -1,0 +1,15 @@
+{
+  "_leia_isto": "Este arquivo é o mural de recados da Central. Edite pelo GitHub (lápis > Commit changes) e o recado aparece para a equipe inteira no próximo clique do favorito. Para tirar o recado, deixe o texto vazio (\"\").",
+
+  "geral": {
+    "id": "2026-09-06-boas-vindas",
+    "texto": ""
+  },
+
+  "_como_usar_geral": "Aparece no topo da tela inicial, para todo mundo. Troque o 'id' sempre que escrever um recado novo — é o id que faz o aviso voltar a aparecer para quem já tinha clicado em ENTENDI.",
+
+  "convenios": {
+  },
+
+  "_como_usar_convenios": "Recado que aparece só ao abrir aquele convênio. Exemplo pronto para copiar dentro de 'convenios': \"INAS\": { \"id\": \"inas-2026-09-06\", \"titulo\": \"MANUTENÇÃO\", \"texto\": \"O robô do INAS está temporariamente indisponível.\", \"previsao\": \"14:30\", \"motivo\": \"Alteração no portal\" }. A chave é a do robô (INAS, AMIL, ASSEFAZ, PM/STJ...), não o nome do card."
+}

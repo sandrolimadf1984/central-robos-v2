@@ -1,0 +1,19 @@
+{
+  "_leia_isto": "Situação de cada robô. Vira uma bolinha colorida no canto do card e uma faixa ao abrir o convênio. Robô que não estiver listado aqui aparece normal, sem bolinha.",
+
+  "_estados_possiveis": {
+    "ok": "🟢 Funcionando normalmente",
+    "atencao": "🟡 Atualização recente",
+    "manutencao": "🟡 Em manutenção",
+    "atualizar": "🟡 Atualização necessária",
+    "fora": "🔴 Portal indisponível",
+    "erro": "🔴 Erro conhecido",
+    "desativado": "⚪ Desativado temporariamente"
+  },
+
+  "_exemplo": "\"INAS\": { \"estado\": \"manutencao\", \"nota\": \"Portal mudou em 06/09 — em ajuste\" }",
+
+  "convenios": {
+    "TRE": { "estado": "atencao", "nota": "Portal mudou em ago/2026 e ficou igual ao da PM" }
+  }
+}

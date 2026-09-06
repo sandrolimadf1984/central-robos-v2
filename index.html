@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central de Automação V3 — instalação (TESTE)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    background:#eef1f6;
+    min-height:100vh;
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:28px 16px;
+    color:#333;
+  }
+  .card{
+    background:#fff;border-radius:18px;
+    box-shadow:0 12px 40px rgba(20,40,80,0.14);
+    max-width:520px;width:100%;overflow:hidden;
+  }
+  .header{
+    background:linear-gradient(150deg,#1c4fb3 0%,#2d7dff 100%);
+    color:#fff;padding:30px 28px 26px;text-align:center;
+  }
+  .header .icon{font-size:2.6rem;line-height:1;margin-bottom:12px;}
+  .header h1{font-size:1.45rem;font-weight:800;letter-spacing:.3px;}
+  .header p{font-size:.9rem;opacity:.88;margin-top:6px;font-weight:500;}
+  .tag{
+    display:inline-block;margin-top:12px;background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.4);border-radius:20px;
+    padding:5px 14px;font-size:.75rem;font-weight:700;letter-spacing:.6px;
+  }
+  .body{padding:26px 28px 22px;}
+  .alerta{
+    background:#fff8e1;border:1px solid #f0c674;border-left:4px solid #e0a800;
+    border-radius:10px;padding:14px 16px;margin-bottom:24px;
+    font-size:.88rem;line-height:1.6;color:#6b5200;
+  }
+  .alerta b{color:#4a3800;}
+  .step{display:flex;align-items:flex-start;gap:15px;margin-bottom:22px;}
+  .num{
+    flex-shrink:0;width:30px;height:30px;border-radius:50%;
+    background:#2d7dff;color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:.95rem;margin-top:1px;
+  }
+  .step-content{flex:1;min-width:0;}
+  .step-content h3{font-size:1.02rem;font-weight:700;color:#1f2937;margin-bottom:4px;}
+  .step-content p{font-size:.9rem;color:#5b6472;line-height:1.6;}
+  .step-content b{color:#1f2937;}
+  .drag-area{
+    margin-top:14px;background:#f2f7ff;border:2px dashed #2d7dff;
+    border-radius:14px;padding:22px 18px;text-align:center;
+  }
+  .drag-label{font-size:.8rem;color:#7a8699;margin-bottom:15px;font-weight:600;}
+  .bm{
+    display:inline-block;background:linear-gradient(180deg,#2d7dff,#1a5bcc);
+    color:#fff;text-decoration:none;padding:13px 30px;border-radius:11px;
+    font-weight:800;font-size:1rem;cursor:grab;
+    box-shadow:0 6px 18px rgba(45,125,255,.4);
+  }
+  .bm:active{cursor:grabbing;}
+  .copiar{
+    margin-top:14px;width:100%;background:#0e1a2e;color:#cfe0ff;
+    border:1px solid #2d7dff;border-radius:11px;padding:11px;
+    font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+  .copiar:hover{background:#14243d;}
+  .codigo{
+    margin-top:12px;width:100%;height:80px;background:#0a1526;color:#7fd4ff;
+    border:1px solid #1b3157;border-radius:10px;padding:10px;
+    font-family:Consolas,monospace;font-size:.7rem;resize:vertical;
+  }
+  .rodape{
+    background:#f7f9fc;border-top:1px solid #e4e9f2;padding:18px 28px;
+    font-size:.8rem;color:#7a8699;line-height:1.7;
+  }
+  .rodape b{color:#4a5568;}
+  code{background:#eef2f8;padding:2px 6px;border-radius:5px;font-size:.85em;color:#2d4a7c;}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="header">
+    <div class="icon">🤖</div>
+    <h1>Central de Automação</h1>
+    <p>CLTzinho Digital — versão 3.0.0</p>
+    <div class="tag">🧪 AMBIENTE DE TESTE</div>
+  </div>
+
+  <div class="body">
+
+    <div class="alerta">
+      <b>Este é o laboratório, não é a Central do dia a dia.</b><br>
+      Aqui a gente testa as novidades sem mexer no que a equipe usa para trabalhar.
+      Enquanto este favorito estiver em teste, mantenha o favorito antigo instalado —
+      ele continua funcionando normalmente e é ele que vale para o trabalho de verdade.
+    </div>
+
+    <div class="step">
+      <div class="num">1</div>
+      <div class="step-content">
+        <h3>Deixe a barra de favoritos à mostra</h3>
+        <p>No Chrome, aperte <b>Ctrl + Shift + B</b>. A barra aparece logo abaixo do endereço.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">2</div>
+      <div class="step-content">
+        <h3>Arraste o botão azul para a barra</h3>
+        <p>Segure o botão abaixo com o mouse e solte em cima da barra de favoritos.
+           Se o seu computador não deixar arrastar, use o botão <b>Copiar código</b> —
+           tem a explicação no rodapé.</p>
+        <div class="drag-area">
+          <div class="drag-label">⬇ ARRASTE ESTE BOTÃO PARA A BARRA DE FAVORITOS ⬇</div>
+          <a class="bm" id="favorito" href="#">🧪 Robôs TESTE</a>
+          <button class="copiar" id="btn-copiar">📋 Copiar código do favorito</button>
+          <textarea class="codigo" id="texto-codigo" readonly spellcheck="false"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">3</div>
+      <div class="step-content">
+        <h3>Abra o portal do convênio e clique no favorito</h3>
+        <p>Entre no portal como sempre, chegue até a tela de lançar os procedimentos
+           e só então clique em <b>🧪 Robôs TESTE</b>. A Central abre por cima da página.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">4</div>
+      <div class="step-content">
+        <h3>Escolha o convênio, cole os códigos e inicie</h3>
+        <p>Clique no card do convênio, cole a lista na caixa e aperte
+           <b>🚀 INICIAR AUTOMAÇÃO</b>. Dá para minimizar a aba: o robô continua trabalhando.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="rodape">
+    <b>Se o navegador não deixar arrastar:</b> clique com o botão direito na barra de
+    favoritos, escolha <code>Adicionar página</code>, dê o nome de <b>🧪 Robôs TESTE</b>
+    e cole o código copiado no campo do endereço (URL).<br><br>
+    <b>Atualização:</b> o favorito busca sempre a versão mais recente do repositório.
+    Depois de atualizar os arquivos no GitHub, é só fechar a Central e clicar de novo —
+    ninguém precisa reinstalar nada.<br><br>
+    <b>Deu problema?</b> Abra a Central, clique em <b>🛠️ DIAGNÓSTICO</b> dentro do convênio
+    e mande o relatório. Ele diz o que o portal respondeu.
+  </div>
+
+</div>
+
+<script>
+  // O favorito é montado aqui para o endereço do repositório ficar em um lugar só.
+  var REPO = 'sandrolimadf1984/central-robos-v2';
+  var RAMO = 'main';
+  var ENDERECO = 'https://raw.githubusercontent.com/' + REPO + '/' + RAMO + '/central.js';
+
+  var CODIGO = "javascript:(function(){fetch('" + ENDERECO + "?v='+Date.now())" +
+    ".then(function(r){if(!r.ok)throw new Error('Erro ao carregar!');return r.text()})" +
+    ".then(function(c){eval(c)}).catch(function(e){alert(e.message)});})();";
+
+  document.getElementById('favorito').href = CODIGO;
+  document.getElementById('texto-codigo').value = CODIGO;
+
+  document.getElementById('btn-copiar').onclick = function () {
+    var campo = document.getElementById('texto-codigo');
+    campo.select();
+    var deu = false;
+    try { deu = document.execCommand('copy'); } catch (e) { }
+    if (!deu && navigator.clipboard) {
+      navigator.clipboard.writeText(CODIGO);
+      deu = true;
+    }
+    this.textContent = deu ? '✔ Copiado! Agora cole no campo do endereço' : '✖ Copie à mão do campo abaixo';
+    var botao = this;
+    setTimeout(function () { botao.textContent = '📋 Copiar código do favorito'; }, 3000);
+  };
+
+  // Clicar no botão azul não faz nada útil — ele é para arrastar.
+  document.getElementById('favorito').addEventListener('click', function (e) {
+    e.preventDefault();
+    alert('Este botão é para ARRASTAR até a barra de favoritos.\n\n' +
+          'Se não conseguir arrastar, use o botão "Copiar código do favorito" logo abaixo.');
+  });
+</script>
+
+</body>
+</html>

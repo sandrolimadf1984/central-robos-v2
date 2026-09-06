@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testes — Central de Automação</title>
+<style>
+  body{font-family:'Segoe UI',Roboto,Arial,sans-serif;background:#0a0f1c;color:#dbe7ff;
+       margin:0;padding:28px 16px;display:flex;justify-content:center;}
+  .caixa{max-width:760px;width:100%;}
+  h1{font-size:1.3rem;color:#4dc3ff;letter-spacing:1px;margin:0 0 4px;}
+  .sub{font-size:.85rem;color:#7f97bd;margin-bottom:20px;}
+  .placar{background:#0c1322;border:1px solid #1d3557;border-radius:14px;
+          padding:18px 20px;margin-bottom:18px;font-size:1.25rem;font-weight:800;}
+  .linha{background:#0c1322;border:1px solid #16233c;border-radius:9px;
+         padding:9px 13px;margin-bottom:5px;font-size:.86rem;line-height:1.5;}
+  .ok{color:#2ecc71;} .falha{color:#ff6b5e;}
+  .detalhe{color:#8fa8cf;font-family:Consolas,monospace;font-size:.75rem;
+           white-space:pre-wrap;margin-top:5px;}
+</style>
+</head>
+<body>
+<div class="caixa">
+  <h1>🧪 TESTES DA CENTRAL DE AUTOMAÇÃO</h1>
+  <div class="sub">
+    Conferem as regras que não dependem de portal nenhum: ordem dos códigos, fila,
+    contagem, retomada, histórico e catálogo de convênios.
+    Nenhum portal é acessado — pode rodar à vontade.
+  </div>
+  <div class="placar" id="placar">rodando...</div>
+  <div id="saida"></div>
+</div>
+
+<script>window.CentralRobos = {};</script>
+<script src="../src/core/utils.js"></script>
+<script src="../src/core/logger.js"></script>
+<script src="../src/core/fila.js"></script>
+<script src="../src/core/historico.js"></script>
+<script src="../src/core/estatisticas.js"></script>
+<script src="../src/config/convenios.js"></script>
+<script src="testes.js"></script>
+<script>
+  var saida = document.getElementById('saida');
+  var r = window.TESTES(window.CentralRobos)(function (situacao, nome, erro) {
+    var d = document.createElement('div');
+    d.className = 'linha';
+    d.innerHTML = situacao === 'ok'
+      ? '<span class="ok">✓</span> ' + nome
+      : '<span class="falha">✗ ' + nome + '</span><div class="detalhe">' + erro + '</div>';
+    saida.appendChild(d);
+  });
+  var p = document.getElementById('placar');
+  p.textContent = r.ok + ' de ' + r.total + ' testes passaram';
+  p.style.color = r.falhas.length ? '#ff6b5e' : '#2ecc71';
+</script>
+</body>
+</html>
