@@ -5,6 +5,106 @@ Formato: o mais recente em cima.
 
 ---
 
+## [3.3.0] — 2026-09-06
+
+Reescrita do robô do TST. **É a primeira mudança em robô que estava no ar** —
+feita a pedido, com a versão antiga guardada e ligada como plano B automático.
+
+### O que era
+
+O portal do TST recarrega a página inteira a cada procedimento salvo. Como o app
+mora dentro da página do portal, ele morria junto no primeiro código. Por isso a
+solução antiga abria uma janelinha separada, que sobrevivia ao recarregamento e
+pilotava a página de fora — com dois preços: uma janela estranha na cara do
+atendente e contagem nenhuma no painel do app.
+
+E havia um defeito: **o primeiro código não entrava**.
+
+### A causa do primeiro código
+
+O campo da tabela chama-se `#noreset_txCodTabela` — o "noreset" do nome entrega
+tudo: o portal **não limpa esse campo** entre um procedimento e outro.
+
+Na primeira vez ele está vazio, então receber "16" é uma mudança de verdade e o
+portal sai para buscar a tabela TUSS. Enquanto busca, ele **limpa o campo do
+código**. O robô já tinha digitado, o portal apagava, e o primeiro exame se
+perdia. Da segunda em diante a tabela já estava em 16, nada era buscado, nada
+era apagado.
+
+### Alterado
+
+- **O TST passou a rodar na moldura**, como TRF, Postal e Câmara: sem janela
+  separada, com progresso e contagem no painel do app
+- **A ordem da colagem passou a ser respeitada.** O robô antigo jogava os códigos
+  repetidos para o fim da lista
+- A janelinha antiga continua registrada e **entra sozinha** se o portal recusar
+  ser embutido na moldura
+
+### Corrigido
+
+- **O primeiro código agora entra.** O robô escreve e CONFERE se ficou; se o
+  portal apagou, escreve de novo (até 6 vezes). Não depende de acertar tempo
+- **Nada entra duas vezes.** A conferência é por contagem do código na tela, com
+  20 segundos de folga, e "entrou" tem prioridade sobre "repetir" — é a lição
+  que custou caro no ASSEDF
+- **Achar botão por `innerText` falhava** quando o elemento não expõe esse texto.
+  Agora lê `textContent` também
+- **`offsetParent !== null` dava elemento invisível como falso** para botão com
+  `position: fixed`, que está na cara do usuário. Agora a visibilidade é
+  conferida por três caminhos
+
+### Adicionado
+
+- **Réplica do portal do TST** (`node tests/tst-portal-falso.js`), que reproduz o
+  defeito de propósito. O teste roda os dois robôs: o antigo, mostrando o
+  primeiro código se perdendo, e o novo, mostrando o problema resolvido. Inclui
+  um cenário de **portal lento**, que é onde a duplicidade costuma aparecer
+- O workflow do GitHub passou a rodar essa réplica
+
+### Como voltar atrás
+
+Em `src/convenios/tst.js`, no robô de `tipo: "moldura"`, troque `ativo: true` por
+`ativo: false`. A janelinha volta a ser a única, exatamente como era.
+
+---
+
+## [3.2.0] — 2026-09-06
+
+Versão sobre uma pergunta certeira: *"o histórico não vai deixar o robô mais
+pesado com o tempo?"*. Medido: o histórico não pesa (teto de 60 execuções, ~11 KB,
+0,07 ms para registrar). Mas a medição achou três coisas que cresciam ou
+desperdiçavam à toa — todas corrigidas.
+
+### Corrigido
+
+- **A fila guardava o texto colado duas vezes.** O campo `textoOriginal` era
+  gravado e nunca lido por ninguém. Uma fila de 200 códigos ocupava 11,2 KB;
+  agora ocupa 9,3 KB, e a retomada continua igual.
+- **Filas de convênios esquecidos ficavam guardadas para sempre.** A validade de
+  12 horas só era conferida quando alguém reabria aquele convênio específico.
+  Agora existe uma faxina que roda quando a Central abre e varre todas de uma vez.
+- **A lista de avisos já lidos crescia sem teto.** Cada recado novo deixava mais
+  uma linha ali, para sempre. Agora guarda só os 40 mais recentes.
+
+### Adicionado
+
+- No painel **⚙️ Versão**: quanto a Central ocupa neste navegador, com botão
+  **🗑 APAGAR TUDO** (não afeta robôs nem convênios)
+- 5 testes novos que provam que nada cresce sem fim: teto do histórico, corte da
+  mensagem de erro, fila sem duplicata, faxina das filas vencidas e teto dos
+  avisos lidos
+
+### Números medidos
+
+| | |
+|---|---|
+| Depois de 750 automações (≈1 ano) | 15,5 KB |
+| Depois de 1500 automações (≈2 anos) | 13,6 KB |
+| Registrar uma automação | 0,065 ms |
+| Gravar a fila durante a automação (a cada 2,5s) | 0,021 ms |
+
+---
+
 ## [3.1.0] — 2026-09-06
 
 ### Adicionado

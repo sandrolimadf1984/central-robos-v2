@@ -104,6 +104,19 @@
         dispensar: function (id) {
             var vistos = U.ler('avisos-vistos', {});
             vistos[id] = Date.now();
+
+            /* Sem teto, esta lista cresceria para sempre: cada recado novo
+               deixaria mais uma linha aqui, ano após ano. Guardamos só os
+               40 mais recentes — recado velho não volta a aparecer porque
+               o id dele também já saiu do avisos.json. */
+            var ids = Object.keys(vistos);
+            if (ids.length > 40) {
+                ids.sort(function (a, b) { return vistos[b] - vistos[a]; });
+                var enxuto = {};
+                for (var i = 0; i < 40; i++) enxuto[ids[i]] = vistos[ids[i]];
+                vistos = enxuto;
+            }
+
             U.guardar('avisos-vistos', vistos);
         },
 

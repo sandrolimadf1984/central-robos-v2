@@ -2,14 +2,14 @@
 
 # 🤖 Central de Automação — CLTzinho Digital
 
-**Versão 3.1.0 · ambiente de testes**
+**Versão 3.3.0 · ambiente de testes**
 
 *Cole os códigos uma vez. O robô digita por você.*
 
-![Versão](https://img.shields.io/badge/vers%C3%A3o-3.1.0-2d7dff)
+![Versão](https://img.shields.io/badge/vers%C3%A3o-3.3.0-2d7dff)
 ![Convênios](https://img.shields.io/badge/conv%C3%AAnios-30-4dc3ff)
 ![Robôs](https://img.shields.io/badge/rob%C3%B4s-25-1a5bcc)
-![Testes](https://img.shields.io/badge/testes-25%20passando-2ecc71)
+![Testes](https://img.shields.io/badge/testes-30%20passando-2ecc71)
 ![Segundo plano](https://img.shields.io/badge/aba%20minimizada-continua%20rodando-2ecc71)
 
 </div>
@@ -65,6 +65,10 @@ autorização. Mexer num robô afeta todos os que dependem dele.
 | **CNU UNIMED** (2) | CNU Unimed, Proasa |
 | Individuais (14) | Affego, Amil, Assedf/Vida Card, Câmara dos Deputados, Inas GDF, Planassiste MPU, Plenum, Postal (Correios), Sul America, TJDF, TRE, TRF, TRT, TST |
 
+> **Sobre o TST:** desde a versão 3.3.0 ele roda na moldura, sem janela
+> separada e com a contagem no painel, como os demais. A janelinha antiga
+> continua guardada e entra sozinha se o portal recusar ser embutido.
+
 > **Sobre o TRE:** tem robô próprio, mas é uma **cópia do PM** — o portal mudou em
 > agosto/2026 e ficou igual ao da Polícia Militar (mesmo campo `#HandleTermo`).
 > Ele tem trava interna separada (`_b403tre`) para os dois não se atrapalharem.
@@ -99,7 +103,7 @@ Os robôs nasceram em épocas diferentes e existem quatro arquiteturas convivend
 | Forma | Quando é usada | Quem usa |
 |---|---|---|
 | **padrão** | O robô roda na própria página do portal | a maioria |
-| **moldura** | O portal é exibido dentro do painel do app. Usada quando a tela do portal **recarrega** a cada item (senão o robô morreria junto) | TRF, Postal, Câmara, Planassiste |
+| **moldura** | O portal é exibido dentro do painel do app. Usada quando a tela do portal **recarrega** a cada item (senão o robô morreria junto) | TRF, Postal, Câmara, Planassiste, TST |
 | **janela** | O app abre a tela de autorização e preenche nela | CNU Unimed / Proasa |
 | **agente injetado** | O robô coloca um ajudante **dentro** da janela do portal, com botão próprio | só o ASSEDF |
 
@@ -168,7 +172,7 @@ recebe nem quando ele é chamado.
 | 🔧 **Avisos** | `avisos.json` manda recado geral ou por convênio, com botão ENTENDI |
 | ⚙️ **Versão e rollback** | Versão à vista e versões guardadas em `releases/` |
 | 🔽 **Segundo plano de verdade** | Dá para minimizar e trabalhar em outra aba: o robô continua. Veja abaixo |
-| 🧪 **Testes** | 25 testes das regras críticas + teste da aba minimizada |
+| 🧪 **Testes** | 30 testes das regras críticas + teste da aba minimizada |
 
 ---
 
@@ -220,6 +224,33 @@ Consequência honesta: minimizado, o Amil continua trabalhando, mas mais devagar
 
 ---
 
+## 💾 O que a Central guarda (e por que não engorda)
+
+Histórico, estatísticas, avisos já lidos e filas de automação interrompida ficam
+no navegador do próprio atendente, com o prefixo `cr2:`. Nada disso sai do
+computador dele.
+
+**Nada cresce sem fim** — todo depósito tem teto:
+
+| O que | Teto | Quanto dá |
+|---|---|---|
+| Histórico | 60 execuções | ~11 KB |
+| Mensagem de erro guardada | 400 caracteres cada | — |
+| Logs | 400 linhas, só da sessão | some ao fechar |
+| Avisos já lidos | 40 mais recentes | ~1 KB |
+| Filas interrompidas | validade de 12h, com faxina ao abrir | ~2 KB por convênio |
+
+Medido de verdade: depois de **1500 automações** (uns dois anos de uso) o total
+fica em torno de **14 KB** — menos do que uma foto de perfil. Registrar uma
+automação leva **0,065 ms** e gravar a fila durante a execução, **0,021 ms**.
+
+Para ver o número do seu navegador: **⚙️ Versão** → *guardado neste navegador*.
+No mesmo lugar tem o botão **🗑 APAGAR TUDO**, que não afeta robôs nem convênios.
+
+Os testes `node tests/rodar.js` conferem cada um desses tetos.
+
+---
+
 ## 🔄 Como atualizar
 
 **Mexer num convênio:** abra o arquivo dele em `src/convenios/`, lápis, edite,
@@ -244,7 +275,7 @@ Se a V3 der problema, tem três saídas, da mais rápida para a mais completa:
 1. **Voltar para a Central de sempre** — o favorito antigo continua funcionando.
    Ela nunca foi tocada.
 2. **Fixar uma versão anterior da V3** — no favorito, troque `central.js` por
-   `releases/v3.1.0/central-completo.js`.
+   `releases/v3.3.0/central-completo.js`.
 3. **Rodar a Central de hoje a partir daqui** — no favorito, aponte para
    `releases/v2.1.0-legado/central.js`. Esse arquivo é **byte a byte idêntico**
    ao que está em produção hoje (MD5 `183ee948d18abb5ec368c077797e4c23`).
@@ -254,8 +285,9 @@ Se a V3 der problema, tem três saídas, da mais rápida para a mais completa:
 ## 🧪 Testes
 
 ```bash
-node tests/rodar.js          # 25 testes, não precisa instalar nada
-node tests/segundo-plano.js  # aba minimizada (precisa de: npm install jsdom)
+node tests/rodar.js            # 30 testes, não precisa instalar nada
+node tests/segundo-plano.js    # aba minimizada       (npm install jsdom)
+node tests/tst-portal-falso.js # réplica do TST       (npm install jsdom)
 ```
 
 Ou abra `tests/index.html` no navegador. Não acessam portal nenhum.

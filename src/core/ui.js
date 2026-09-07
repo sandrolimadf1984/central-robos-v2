@@ -754,12 +754,33 @@
                 '<div style="color:#cfe0ff;font-size:11px;margin-top:4px;line-height:1.7;">' +
                 Object.keys(CR.fichas).length + ' robôs · ' + CR.EXIBICAO.length + ' cards de convênio<br>' +
                 (CR.modulosCarregados || 0) + ' arquivos carregados em ' + (CR.tempoCarga || '?') + 'ms</div></div>' +
+                '<div style="background:#0a1424;border:1px solid #1b3157;border-radius:10px;padding:12px;margin-bottom:9px;">' +
+                '<div style="font-size:9.5px;color:#7f97bd;letter-spacing:1.2px;font-weight:700;">GUARDADO NESTE NAVEGADOR</div>' +
+                '<div style="font-size:19px;font-weight:800;color:#eaf3ff;margin-top:2px;">' +
+                (U.tamanhoGuardado() / 1024).toFixed(1) + ' KB</div>' +
+                '<div style="color:#7f97bd;font-size:10px;margin-top:5px;line-height:1.6;">' +
+                'Histórico (teto de 60 execuções), avisos já lidos e filas de automação ' +
+                'interrompida. Não cresce sem parar e nunca sai deste computador.</div>' +
+                '<div style="text-align:right;margin-top:8px;">' +
+                '<span data-cr="limpar-dados" style="display:inline-block;background:#2a0f14;border:1px solid #b91f16;' +
+                'color:#ff9d93;border-radius:9px;padding:5px 12px;font-size:10px;font-weight:800;cursor:pointer;">' +
+                '🗑 APAGAR TUDO</span></div></div>' +
+
                 '<div style="background:#0a1424;border:1px solid #1b3157;border-radius:10px;padding:12px;">' +
                 '<div style="font-size:9.5px;color:#7f97bd;letter-spacing:1.2px;font-weight:700;">VOLTAR PARA UMA VERSÃO ANTERIOR</div>' +
                 '<div style="color:#cfe0ff;font-size:10.5px;margin-top:4px;line-height:1.7;">' +
                 'As versões ficam guardadas na pasta <b>releases/</b> do repositório. ' +
                 'Para voltar, troque o endereço do favorito pelo arquivo da versão desejada — ' +
                 'está explicado no <b>README</b>.</div></div>';
+
+            const bLimpar = corpo.querySelector('[data-cr="limpar-dados"]');
+            if (bLimpar) bLimpar.onclick = () => {
+                if (!confirm('Apagar o histórico, as estatísticas, os avisos já lidos e as ' +
+                    'filas guardadas deste navegador?\n\nOs robôs e os convênios não são afetados.')) return;
+                U.apagarTudo();
+                CR.log.info('Dados guardados apagados pelo usuário');
+                abrirPainel('versao');
+            };
         }
 
         telaHome.style.display = 'none';
@@ -855,6 +876,14 @@
 
     /* avisos gerais e favoritos assim que a tela existe */
     CR.avisos.desenharGeral(document.getElementById('cr-aviso-slot'));
+
+    /* Faxina: joga fora as filas de automações interrompidas que já
+       venceram, de todos os convênios de uma vez. */
+    U.seguro(() => {
+        const jogadas = CR.fila.limparAntigas();
+        if (jogadas) CR.log.info(jogadas + ' fila(s) vencida(s) descartada(s)');
+    }, 'faxina');
+
     CR.log.ok('Central de Automação ' + CR.versao + ' pronta · ' + CR.EXIBICAO.length + ' convênios');
 
 })(window.CentralRobos);

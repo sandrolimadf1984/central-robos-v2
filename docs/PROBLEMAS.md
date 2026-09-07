@@ -92,5 +92,8 @@ favorito para `releases/v2.1.0-legado/central.js`.
 
 ## Como limpar o que a Central guardou
 
-Histórico, estatísticas, favoritos e filas ficam no navegador com o prefixo
-`cr2:`. Limpar os dados do site apaga tudo. Nada disso sai do computador.
+Abra **⚙️ Versão** no rodapé. Ali aparece quanto está ocupado e tem o botão
+**🗑 APAGAR TUDO**. Os robôs e os convênios não são afetados.
+
+Não é preciso fazer isso por causa de espaço: tudo tem teto, e mesmo depois de
+dois anos de uso o total fica em torno de 14 KB.

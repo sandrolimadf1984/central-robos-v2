@@ -193,6 +193,55 @@
         igual(e.convenioMaisUsado, '—', 'sem convênio');
     });
 
+    /* ══════════ NADA PODE CRESCER SEM FIM ══════════ */
+
+    teste('o histórico para de crescer no teto, por mais que se use', function () {
+        H.limpar();
+        for (var i = 0; i < 500; i++) {
+            H.registrar({ convenio: 'AMIL', total: 20, feitos: 20, erros: 0,
+                          duracao: 45000, situacao: 'concluida',
+                          mensagem: '✅ Automação concluída! 20/20 códigos lançados' });
+        }
+        igual(H.listar().length, 60, 'teto de 60 registros');
+        verdade(U.tamanhoGuardado() < 30 * 1024, 'ocupa menos de 30 KB depois de 500 automações');
+    });
+
+    teste('mensagem enorme do portal não incha o histórico', function () {
+        H.limpar();
+        var enorme = new Array(5000).join('erro muito comprido ');
+        H.registrar({ convenio: 'INAS', total: 1, feitos: 0, erros: 1,
+                      situacao: 'erro', mensagem: enorme });
+        verdade(H.listar()[0].mensagem.length <= 400, 'mensagem cortada em 400 caracteres');
+    });
+
+    teste('a fila guardada não carrega o texto colado duas vezes', function () {
+        var fila = F.criar('TESTE', '11111111 22222222 33333333');
+        igual(fila.textoOriginal, undefined, 'o texto original não é guardado');
+        verdade(F.pendentesComoTexto(fila).length > 0, 'e mesmo assim a retomada continua funcionando');
+    });
+
+    teste('FAXINA: fila vencida é jogada fora mesmo sem ninguém reabrir o convênio', function () {
+        U.apagarTudo();
+        var velha = F.criar('CONVENIO_ESQUECIDO', '11111111 22222222');
+        velha.criadaEm = Date.now() - (13 * 3600 * 1000);   // ontem
+        F.guardar(velha);
+        var nova = F.criar('CONVENIO_DE_HOJE', '33333333');
+        F.guardar(nova);
+
+        igual(U.chaves('fila:').length, 2, 'duas filas guardadas');
+        igual(F.limparAntigas(), 1, 'só a vencida foi jogada fora');
+        igual(U.chaves('fila:'), ['fila:CONVENIO_DE_HOJE'], 'a de hoje continua');
+    });
+
+    teste('avisos já lidos param num teto de 40', function () {
+        U.apagar('avisos-vistos');
+        for (var i = 0; i < 200; i++) CR.avisos.dispensar('aviso-' + i);
+        var guardados = Object.keys(U.ler('avisos-vistos', {}));
+        igual(guardados.length, 40, 'teto de 40');
+        verdade(guardados.indexOf('aviso-199') !== -1, 'guardou os mais recentes');
+        verdade(guardados.indexOf('aviso-0') === -1, 'e descartou os mais antigos');
+    });
+
     /* ══════════ CATÁLOGO DE CONVÊNIOS (quando disponível) ══════════ */
 
     if (CR.EXIBICAO && CR.infoRobos) {

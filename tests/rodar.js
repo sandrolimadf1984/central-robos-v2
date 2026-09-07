@@ -13,7 +13,9 @@ var memoria = {};
 global.localStorage = {
     getItem: function (k) { return Object.prototype.hasOwnProperty.call(memoria, k) ? memoria[k] : null; },
     setItem: function (k, v) { memoria[k] = String(v); },
-    removeItem: function (k) { delete memoria[k]; }
+    removeItem: function (k) { delete memoria[k]; },
+    key: function (i) { return Object.keys(memoria)[i]; },
+    get length() { return Object.keys(memoria).length; }
 };
 
 global.CentralRobos = {};
@@ -26,7 +28,8 @@ var raiz = caminho.join(__dirname, '..');
     'src/core/logger.js',
     'src/core/fila.js',
     'src/core/historico.js',
-    'src/core/estatisticas.js'
+    'src/core/estatisticas.js',
+    'src/core/notifications.js'
 ].forEach(function (m) { require(caminho.join(raiz, m)); });
 
 var CR = global.CentralRobos;

@@ -12,7 +12,7 @@
 
     CR.registrar({
         chave: "TST",
-        nome: "TST",
+        nome: "TST (janelinha — plano B)",
         tipo: "padrao",
         ativo: true,
         portal: {
@@ -37,9 +37,356 @@
         }
     });
 
+    /* ════════════════════════════════════════════════════════════
+     *  TST — VERSÃO QUE RODA NA MOLDURA  (esta é a que vale)
+     *
+     *  POR QUE ESTE ROBÔ EXISTE
+     *
+     *  O portal do TST recarrega a página INTEIRA a cada procedimento
+     *  salvo (SolicitacaoSpSadtManter.do). Como o app mora dentro da
+     *  página do portal, ele morria junto no primeiro código — por isso
+     *  a solução antiga abria uma janelinha separada, que sobrevivia ao
+     *  recarregamento e pilotava a página de fora.
+     *
+     *  O preço disso era alto: janela estranha na cara do atendente e
+     *  contagem nenhuma no painel do app.
+     *
+     *  Na moldura o problema some pela raiz: o portal passa a viver
+     *  dentro de um quadro e é ELE que recarrega. O app fica por fora,
+     *  intacto, contando e mostrando o progresso como em qualquer outro
+     *  convênio.
+     *
+     *  O PRIMEIRO CÓDIGO QUE NÃO ENTRAVA
+     *
+     *  O campo da tabela chama-se #noreset_txCodTabela — o "noreset" no
+     *  nome entrega o segredo: o portal NÃO limpa esse campo entre um
+     *  procedimento e outro.
+     *
+     *  Resultado: na PRIMEIRA vez ele está vazio, receber "16" é uma
+     *  mudança de verdade, e o portal sai para buscar a tabela TUSS —
+     *  e enquanto busca, ele LIMPA o campo do código. O robô antigo já
+     *  tinha digitado, o portal apagava, e o primeiro exame se perdia.
+     *  Da segunda em diante a tabela já estava em 16, nada era buscado,
+     *  nada era apagado, e tudo entrava.
+     *
+     *  A correção não depende de adivinhar tempo: o robô escreve o
+     *  código e CONFERE se ele ficou lá. Se o portal apagou, escreve de
+     *  novo, até seis vezes. E, depois de salvar, confere se o código
+     *  apareceu mesmo na tela antes de dar o item por entrado.
+     * ════════════════════════════════════════════════════════════ */
+    CR.registrar({
+        chave: "TST",
+        nome: "TST",
+        tipo: "moldura",
+        ativo: true,
+        portal: {
+            seletores: ["input[value=\"Adicionar Procedimento\"]", "#noreset_txCodTabela"],
+            nota: "Botão de adicionar e campo da tabela TUSS (a tela recarrega a cada item)"
+        },
+        origem: "reescrito em set/2026 a partir do robô de janelinha do colega",
+        executar: (texto, ctx) => {
+            const U = CR.utils;
+
+            /* ORDEM DA COLAGEM PRESERVADA. O robô antigo jogava os códigos
+               repetidos para o fim da lista; este mantém a ordem em que
+               foram colados, como nos demais convênios. */
+            const fila = U.montarFila(texto);
+            if (!fila.length) {
+                ctx.status("Nenhum código de 8 dígitos encontrado no texto colado.");
+                ctx.fim();
+                return;
+            }
+
+            const anotar = m => { try { CR.log.info("TST · " + m); } catch (e) { } };
+            const pausa = ms => new Promise(r => setTimeout(r, ms));
+            const doc = () => ctx.doc();
+
+            const BOTAO_ADICIONAR =
+                "input[value='Adicionar Procedimento'],input[name='adicionarProcedimento']";
+
+            /* ARMADILHA: o teste "offsetParent !== null" dá FALSO para
+               elemento com position:fixed — que está na cara do usuário.
+               Por isso conferimos por três caminhos antes de desistir. */
+            const visivel = el => {
+                if (!el || el.disabled) return false;
+                try {
+                    if (el.offsetParent !== null) return true;
+                    if (el.getClientRects && el.getClientRects().length) return true;
+                    const est = ctx.win().getComputedStyle(el);
+                    if (est && est.position === "fixed" &&
+                        est.display !== "none" && est.visibility !== "hidden") return true;
+                } catch (e) { }
+                return false;
+            };
+
+            /* Espera um elemento aparecer, ficar visível e habilitado.
+               Durante o recarregamento o documento some por um instante —
+               por isso cada leitura vai dentro de um try. */
+            async function esperar(sel, teto, oque) {
+                let t = 0;
+                teto = teto || 8000;
+                while (t < teto) {
+                    if (!ctx.ativo()) throw new Error("Parado");
+                    let el = null;
+                    try { el = doc().querySelector(sel); } catch (e) { el = null; }
+                    if (visivel(el)) return el;
+                    await pausa(150);
+                    t += 150;
+                }
+                throw new Error("não apareceu na tela: " + (oque || sel));
+            }
+
+            /* Escreve num campo avisando o portal de todas as formas que
+               ele possa estar ouvindo (inclusive jQuery, que este portal usa). */
+            const escrever = (campo, valor) => {
+                const w = ctx.win();
+                try { campo.focus(); } catch (e) { }
+                campo.value = valor;
+                ["input", "change", "blur"].forEach(nome => {
+                    try { campo.dispatchEvent(new w.Event(nome, { bubbles: true })); } catch (e) { }
+                });
+                try { w.$(campo).trigger("change"); } catch (e) { }
+            };
+
+            const valorDe = sel => {
+                try { return ((doc().querySelector(sel) || {}).value || "").trim(); }
+                catch (e) { return ""; }
+            };
+
+            /* A tabela TUSS é 16. Só mexe se ainda não estiver lá — e, quando
+               mexe, dá tempo do portal terminar a busca antes de seguir. */
+            async function fixarTabela() {
+                const campo = await esperar("#noreset_txCodTabela", 8000, "campo da tabela TUSS");
+                if (valorDe("#noreset_txCodTabela") === "16") return false;
+                escrever(campo, "16");
+                anotar("tabela TUSS definida — esperando o portal terminar a busca");
+                await pausa(1200);
+                return true;
+            }
+
+            /* AQUI mora a correção do primeiro código: escreve e confere.
+               Se o portal apagou (porque estava buscando a tabela), escreve
+               de novo, até seis vezes. */
+            async function escreverCodigo(cod) {
+                for (let tentativa = 1; tentativa <= 6; tentativa++) {
+                    const campo = await esperar("#codItemProcedimento", 8000, "campo do código");
+                    escrever(campo, cod);
+                    await pausa(450);
+                    if (valorDe("#codItemProcedimento").indexOf(cod) !== -1) {
+                        if (tentativa > 1) anotar(cod + " ficou no campo na tentativa " + tentativa);
+                        return true;
+                    }
+                    anotar("o portal limpou o campo do código (tentativa " + tentativa + ") — escrevendo de novo");
+                    await pausa(600);
+                }
+                return false;
+            }
+
+            async function escreverQuantidade(q) {
+                let campo = null;
+                try { campo = doc().getElementById("procedimento.numQtdSolicitada"); } catch (e) { }
+                if (!campo) return;
+                escrever(campo, q);
+                await pausa(150);
+            }
+
+            /* Acha o botão de salvar do diálogo. ARMADILHA CONHECIDA: a
+               célula que envolve o botão também casa com a busca por texto,
+               e clicar nela não faz nada — por isso descemos até o elemento
+               mais interno que seja clicável de verdade. */
+            async function acharSalvar() {
+                const querAchar = /salvar|confirmar|gravar|^ok$/i;
+                let t = 0;
+                while (t < 8000) {
+                    if (!ctx.ativo()) throw new Error("Parado");
+                    try {
+                        const d = doc();
+                        const painel = d.querySelector(".ui-dialog-buttonpane");
+                        const candidatos = Array.from(
+                            (painel || d).querySelectorAll("button,input[type=button],input[type=submit],a"));
+                        for (const el of candidatos) {
+                            /* innerText some quando o elemento não está desenhado;
+                               textContent nunca some. Ler os dois evita não achar
+                               um botão que está ali na frente. */
+                            const rotulo = (el.innerText || el.textContent || el.value || "").trim();
+                            if (!querAchar.test(rotulo)) continue;
+                            if (!visivel(el)) continue;
+                            const dentro = el.querySelector("span,b,font");
+                            return (dentro && (dentro.textContent || "").trim()) ? dentro : el;
+                        }
+                    } catch (e) { }
+                    await pausa(150);
+                    t += 150;
+                }
+                throw new Error("não achei o botão de salvar do procedimento");
+            }
+
+            /* Depois de salvar, o portal recarrega a tela inteira.
+               Só seguimos quando ela voltar pronta. */
+            async function esperarTelaVoltar() {
+                let t = 0;
+                while (t < 25000) {
+                    if (!ctx.ativo()) throw new Error("Parado");
+                    let pronto = false;
+                    try {
+                        const d = doc();
+                        pronto = !!(d && d.readyState === "complete" && d.querySelector(BOTAO_ADICIONAR));
+                    } catch (e) { pronto = false; }
+                    if (pronto) return true;
+                    await pausa(200);
+                    t += 200;
+                }
+                throw new Error("a tela do portal não voltou depois de salvar");
+            }
+
+            /* Quantas vezes o código aparece na TELA (fora do diálogo).
+               O diálogo é ignorado de propósito: enquanto ele está aberto o
+               código está lá dentro, e contar isso enganaria a conferência.
+               Devolve -1 quando não deu para ler — normalmente porque a tela
+               está no meio do recarregamento. */
+            const contarNaTela = cod => {
+                try {
+                    const d = doc();
+                    let txt = "";
+                    Array.from(d.body.children).forEach(el => {
+                        if (el.classList && el.classList.contains("ui-dialog")) return;
+                        txt += " " + (el.textContent || "");
+                        if (el.querySelectorAll) {
+                            el.querySelectorAll("input,select,textarea").forEach(c => {
+                                txt += " " + (c.value || "");
+                            });
+                        }
+                    });
+                    let n = 0, i = 0;
+                    while ((i = txt.indexOf(cod, i)) !== -1) { n++; i += cod.length; }
+                    return n;
+                } catch (e) { return -1; }
+            };
+
+            /* ARMADILHA MAIS CARA DO PROJETO: mandar o mesmo item duas vezes.
+               Se o robô desiste antes de o portal responder e tenta de novo, o
+               portal acusa duplicidade — e o exame entra dobrado ou parece
+               recusado. Por isso aqui NÃO se conta o tempo: espera-se o código
+               APARECER na lista, com folga larga. */
+            async function esperarEntrar(cod, tinhaAntes) {
+                let t = 0;
+                while (t < 20000) {
+                    if (!ctx.ativo()) throw new Error("Parado");
+                    const agora = contarNaTela(cod);
+                    if (agora > tinhaAntes) return true;
+                    await pausa(250);
+                    t += 250;
+                }
+                return false;
+            }
+
+            /* Se um item deu errado no meio, o diálogo pode ter ficado aberto
+               e travaria o próximo. Fecha antes de tentar de novo. */
+            async function fecharDialogo() {
+                try {
+                    const d = doc();
+                    const fechar = d.querySelector(".ui-dialog-titlebar-close");
+                    if (fechar) { fechar.click(); await pausa(400); return; }
+                    const botoes = Array.from(d.querySelectorAll(".ui-dialog-buttonpane button"));
+                    for (const b of botoes) {
+                        if (/cancelar|fechar/i.test(b.innerText || b.textContent || "")) { b.click(); await pausa(400); return; }
+                    }
+                } catch (e) { }
+            }
+
+            async function lancar(cod, qtd, tinhaAntes) {
+                await esperar(BOTAO_ADICIONAR, 12000, "botão Adicionar Procedimento");
+                await pausa(300);
+
+                let botao = null;
+                try { botao = doc().querySelector(BOTAO_ADICIONAR); } catch (e) { }
+                if (!botao) throw new Error("o botão Adicionar Procedimento sumiu da tela");
+                botao.click();
+
+                await fixarTabela();
+
+                if (!await escreverCodigo(cod)) {
+                    throw new Error("o portal não aceitou manter o código " + cod + " no campo");
+                }
+
+                await escreverQuantidade(qtd);
+                await pausa(400);
+
+                (await acharSalvar()).click();
+
+                /* Espera o código APARECER na lista — não um tempo qualquer. */
+                const entrou = await esperarEntrar(cod, tinhaAntes);
+                await esperarTelaVoltar();
+                await pausa(200);
+                return entrou;
+            }
+
+            (async function () {
+                const comeco = Date.now();
+                const naoEntraram = [];
+                let entraram = 0;
+
+                anotar("iniciando " + fila.length + " código(s) na moldura, na ordem colada");
+
+                for (let i = 0; i < fila.length; i++) {
+                    if (!ctx.ativo()) return;
+                    const cod = fila[i].cod, qtd = fila[i].qtd;
+
+                    ctx.status("⏳ Item " + (i + 1) + "/" + fila.length + ": " + cod +
+                        (qtd > 1 ? "  (quantidade " + qtd + ")" : ""));
+
+                    /* Quanto já havia deste código na tela ANTES de tentar.
+                       É a régua para saber se o item entrou de verdade. */
+                    const tinhaAntes = Math.max(0, contarNaTela(cod));
+
+                    let deu = false;
+                    for (let volta = 1; volta <= 2 && !deu; volta++) {
+                        try {
+                            deu = await lancar(cod, qtd, tinhaAntes);
+                            if (!deu) anotar(cod + ": salvou mas não apareceu na lista");
+                        } catch (e) {
+                            if (e.message === "Parado") return;
+                            anotar(cod + ": " + e.message);
+                            await fecharDialogo();
+                        }
+
+                        if (!deu && volta === 1) {
+                            /* Antes de repetir, conferir de novo: portal lento pode
+                               ter registrado depois da hora. ENTROU tem prioridade
+                               sobre repetir — repetir é o que gera duplicidade. */
+                            await pausa(2000);
+                            if (contarNaTela(cod) > tinhaAntes) {
+                                anotar(cod + " entrou com atraso — não vou repetir");
+                                deu = true;
+                            } else {
+                                ctx.status("↻ " + cod + " não entrou — tentando de novo...");
+                                await fecharDialogo();
+                            }
+                        }
+                    }
+
+                    if (deu) entraram++; else naoEntraram.push(cod);
+                }
+
+                const tempo = U.formatarDuracao(Date.now() - comeco);
+                if (naoEntraram.length === 0) {
+                    ctx.status("✅ Automação concluída!\n📋 " + entraram + "/" + fila.length +
+                        " códigos lançados no portal · " + tempo);
+                    anotar("fim — " + entraram + "/" + fila.length + " em " + tempo);
+                } else {
+                    ctx.status("⚠️ Terminou com pendência.\n📋 " + entraram + "/" + fila.length +
+                        " lançados · " + tempo + "\nNão entraram: " + naoEntraram.join(", ") +
+                        "\nConfira esses no portal antes de fechar.");
+                    anotar("fim — não entraram: " + naoEntraram.join(", "));
+                }
+                ctx.fim();
+            })();
+        }
+    });
+
     CR.registrar({
         chave: "TST_DESATIVADO_MOLDURA",
-        nome: "TST",
+        nome: "TST (primeira tentativa de moldura, guardada)",
         tipo: "moldura",
         ativo: false,
         origem: "central.js v2.1.0, linhas 4336-4409",

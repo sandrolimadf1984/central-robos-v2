@@ -19,6 +19,9 @@
 
     var U = CR.utils;
 
+    /* Uma automação interrompida só interessa no mesmo expediente. */
+    var VALIDADE = 12 * 3600 * 1000;
+
     function chaveGuardada(convenio) {
         return 'fila:' + convenio;
     }
@@ -32,7 +35,6 @@
             return {
                 convenio: convenio,
                 criadaEm: Date.now(),
-                textoOriginal: String(texto || ''),
                 itens: itens,
                 lancamentos: resumo.lancamentos,
                 unicos: resumo.unicos
@@ -122,7 +124,7 @@
             var f = U.ler(chaveGuardada(convenio), null);
             if (!f || !f.itens) return null;
             /* fila velha demais (mais de 12h) não interessa mais */
-            if (Date.now() - (f.criadaEm || 0) > 12 * 3600 * 1000) {
+            if (Date.now() - (f.criadaEm || 0) > VALIDADE) {
                 U.apagar(chaveGuardada(convenio));
                 return null;
             }
@@ -131,6 +133,25 @@
 
         descartar: function (convenio) {
             return U.apagar(chaveGuardada(convenio));
+        },
+
+        /* FAXINA — roda uma vez, quando a Central abre.
+
+           A fila só era descartada quando alguém reabria AQUELE convênio.
+           Uma automação interrompida num convênio que ninguém abre de novo
+           ficava guardada para sempre, com a lista de códigos junto.
+           Aqui varremos todas de uma vez e jogamos fora as vencidas. */
+        limparAntigas: function () {
+            var jogadas = 0;
+            var agora = Date.now();
+            U.chaves('fila:').forEach(function (k) {
+                var f = U.ler(k, null);
+                if (!f || !f.itens || (agora - (f.criadaEm || 0)) > VALIDADE) {
+                    U.apagar(k);
+                    jogadas++;
+                }
+            });
+            return jogadas;
         },
 
         /* Existe automação interrompida com pendências para este convênio? */

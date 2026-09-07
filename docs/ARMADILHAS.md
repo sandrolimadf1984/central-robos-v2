@@ -18,12 +18,11 @@ Existem dois testes automatizados só para isso (`REGRA DE OURO`, em
 ### Portais que recarregam a tela
 
 TRF, Postal, Câmara e TST recarregam a página a cada item salvo. Robô que rode
-dentro da página **morre no primeiro código**. A solução é a **moldura** ou uma
-janela de controle.
+dentro da página **morre no primeiro código**. A solução é a **moldura**: o
+portal passa a viver dentro de um quadro e é ele que recarrega, enquanto o app
+fica por fora, intacto.
 
-O TST usa janelinha de controle porque ela sobrevive ao recarregamento e continua
-pilotando pelo `window.opener`. **Não tente de novo rodar o TST na própria tela
-nem em moldura.**
+Nunca rode esses robôs direto na tela do portal.
 
 ---
 
@@ -159,3 +158,36 @@ Por isso o medidor original é guardado **antes** do disfarce, e o motor consult
 Ao contrário dos relógios, o `requestAnimationFrame` **para por completo** em aba
 escondida. Portal que dependa dele para redesenhar fica parado de vez, por mais
 que os relógios estejam funcionando.
+
+---
+
+### Campo com "noreset" no nome guarda valor entre um item e outro
+
+No TST, o campo da tabela chama-se `#noreset_txCodTabela`. O nome não é enfeite:
+o portal **não limpa** aquele campo entre um procedimento e outro.
+
+Consequência: na PRIMEIRA vez ele está vazio, receber um valor é uma mudança de
+verdade, e o portal sai para buscar a tabela — **limpando o campo do código
+enquanto busca**. Da segunda em diante nada muda, nada é buscado, nada é apagado.
+
+É por isso que só o primeiro código falhava. Regra que sai daí: **escreva e
+confira**. Se o campo não guardou o que você escreveu, escreva de novo. Nunca
+tente acertar o tempo da busca do portal.
+
+---
+
+### `innerText` some; `textContent` não
+
+Procurar botão pelo `innerText` falha quando o elemento não expõe esse texto —
+e o robô sai dizendo que "não achou o botão" que está bem ali. Leia sempre
+`innerText || textContent || value`.
+
+---
+
+### `offsetParent !== null` NÃO quer dizer "está escondido"
+
+Elemento com `position: fixed` tem `offsetParent` nulo **estando na cara do
+usuário**. Robô que usa só essa checagem pode ignorar um botão visível.
+
+Confira por três caminhos: `offsetParent`, `getClientRects().length` e o
+`position` calculado.

@@ -166,6 +166,39 @@
         try { localStorage.removeItem('cr2:' + chave); return true; } catch (e) { return false; }
     };
 
+    /* Lista o que a Central guardou (sem o prefixo cr2:). Serve para
+       fazer faxina do que ficou para trás e para mostrar o tamanho. */
+    U.chaves = function (prefixo) {
+        var saida = [];
+        try {
+            var busca = 'cr2:' + (prefixo || '');
+            for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (k && k.indexOf(busca) === 0) saida.push(k.slice(4));
+            }
+        } catch (e) { }
+        return saida;
+    };
+
+    /* Quantos bytes a Central ocupa no navegador. */
+    U.tamanhoGuardado = function () {
+        var total = 0;
+        try {
+            U.chaves().forEach(function (k) {
+                var v = localStorage.getItem('cr2:' + k);
+                total += k.length + 4 + (v ? v.length : 0);
+            });
+        } catch (e) { }
+        return total;
+    };
+
+    /* Apaga tudo que a Central guardou neste navegador. */
+    U.apagarTudo = function () {
+        var n = 0;
+        U.chaves().forEach(function (k) { if (U.apagar(k)) n++; });
+        return n;
+    };
+
     /* Executa algo sem deixar um erro derrubar a automação.
        Regra do projeto: recurso novo nunca pode quebrar robô que funciona. */
     U.seguro = function (fn, ondeFoi) {
