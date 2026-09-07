@@ -5,6 +5,46 @@ Formato: o mais recente em cima.
 
 ---
 
+## [3.1.0] — 2026-09-06
+
+### Adicionado
+
+- **Segundo plano de verdade.** A automação continua andando com a aba
+  minimizada ou com outra aba na frente:
+  - batida principal num **Web Worker**, que o Chrome não freia (o thread
+    principal de aba escondida é freado de 100ms para 1s e, depois de 5
+    minutos, para 1 por minuto)
+  - a página passa a enxergar `document.hidden = false` o tempo todo — muito
+    portal se cala sozinho ao perceber que saiu da frente
+  - `requestAnimationFrame` (que **morre de vez** em aba escondida) passa pela
+    agenda da Central enquanto ela estiver no fundo
+  - a moldura e as janelas que o robô abre recebem o mesmo tratamento
+  - o som que mantém a aba acordada é religado sozinho se o Chrome derrubar
+- Aviso no painel de progresso: *🔽 Pode minimizar e trabalhar em outra aba*
+- Teste automatizado que simula minimizar a aba (`node tests/segundo-plano.js`)
+- O workflow do GitHub passou a rodar esse teste também
+
+### Corrigido
+
+- **O reforço por mensagens podia derrubar a automação inteira.** Se o portal
+  bloqueasse o `MessageChannel`, o erro subia e a automação parava. Agora existe
+  uma corrente de reservas: Worker → placa de som → mensagens → relógio comum.
+  Descoberto pelo novo teste de segundo plano.
+- `agendarPulso` chamava os relógios originais sem conferir se eles existiam,
+  o que quebrava no modo leve
+
+### Removido
+
+- A seção **⭐ MAIS UTILIZADOS** da tela inicial, a pedido
+
+### Preservado
+
+- O modo leve (`semMotor`) continua **sem tocar no relógio da página** — é o que
+  protege o Amil e os demais portais em Angular
+- Os 25 robôs continuam byte a byte idênticos
+
+---
+
 ## [3.0.0] — 2026-09-06
 
 Primeira versão do repositório de testes. O objetivo desta versão foi

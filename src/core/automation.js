@@ -614,6 +614,7 @@
 
             if (pronto) {
                 clearInterval(espera);
+                U.seguro(() => CR.motor.manterAcordada(iframe), 'moldura-acordada');
                 CR.ui.status('▶ Iniciando automação...', '#4dc3ff');
                 try {
                     CR.roboMoldura[nome](texto, ctx);
@@ -649,6 +650,7 @@
 
         const comecar = alvo => {
             janelaUnimed = alvo;
+            U.seguro(() => CR.motor.manterAcordada(janelaUnimed), 'janela-acordada');
 
             const contador = setInterval(() => {
                 if (!CR.estado.rodando || !janelaUnimed || janelaUnimed.closed) { clearInterval(contador); return; }
@@ -735,6 +737,53 @@
     };
 
     /* ═══════════════════════════════════════════════════════════
+     *  VIGIA DE SEGUNDO PLANO
+     *
+     *  O motor cuida da aba principal. Mas o robô também trabalha em
+     *  outros lugares: a moldura (que é uma página dentro da página) e
+     *  as janelas que ele abre. Cada uma delas é escondida pelo Chrome
+     *  por conta própria.
+     *
+     *  Esta vigia varre esses lugares de dois em dois segundos e aplica
+     *  neles o mesmo disfarce: para todos, a tela nunca saiu da frente.
+     *  Janela de outro domínio simplesmente é ignorada — não dá para
+     *  alcançar, e tentar não custa nada.
+     * ═══════════════════════════════════════════════════════════ */
+    const vigiarSegundoPlano = () => {
+        let semAndar = 0;
+        let ultimoFeitos = -1;
+
+        const iv = setInterval(() => {
+            if (!CR.estado.rodando) { clearInterval(iv); return; }
+
+            U.seguro(() => {
+                if (espelho && espelho.iframe) CR.motor.manterAcordada(espelho.iframe);
+                if (janelaUnimed && !janelaUnimed.closed) CR.motor.manterAcordada(janelaUnimed);
+                CR.estado.janelasRobo.forEach(w => {
+                    if (w && !w.closed) CR.motor.manterAcordada(w);
+                });
+            }, 'manter-acordada');
+
+            /* Se estiver escondida e nada andar por muito tempo, isso vai
+               para o log — é a pista de que o segundo plano falhou naquele
+               portal, em vez de a gente ficar adivinhando depois. */
+            U.seguro(() => {
+                if (!CR.motor.escondidoDeVerdade()) { semAndar = 0; return; }
+                const c = CR.fila.contagem(CR.estado.fila);
+                if (c.feitos !== ultimoFeitos) { ultimoFeitos = c.feitos; semAndar = 0; return; }
+                semAndar += 2;
+                if (semAndar === 60) {
+                    CR.log.aviso('Aba escondida e sem avanço há 1 minuto (parou em ' +
+                        c.feitos + '/' + c.total + '). Se isso se repetir neste convênio, ' +
+                        'o segundo plano precisa de ajuste aqui.');
+                }
+            }, 'vigia-parada');
+        }, 2000);
+
+        CR.estado.vigias.push(iv);
+    };
+
+    /* ═══════════════════════════════════════════════════════════
      *  INICIAR e PARAR
      * ═══════════════════════════════════════════════════════════ */
     const iniciarAutomacao = (nome, texto) => {
@@ -754,6 +803,8 @@
 
         CR.ui.status('▶ Iniciando... pode minimizar ou trocar de aba.\n⚙️ ' +
             CR.motor.diagnostico().join(' · '), '#4dc3ff');
+
+        U.seguro(vigiarSegundoPlano, 'vigia-segundo-plano');
 
         /* A ORDEM ABAIXO É A MESMA DE SEMPRE e não pode mudar:
            janela → moldura → padrão. */

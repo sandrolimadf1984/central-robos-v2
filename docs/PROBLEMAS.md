@@ -41,6 +41,27 @@ Se preferir recomeçar, clique em **COMEÇAR DO ZERO**.
 
 ---
 
+## Minimizei e o robô parou
+
+Não deveria mais acontecer. Confira nesta ordem:
+
+1. **O rodapé, logo depois de clicar em INICIAR.** Ele mostra o estado do
+   segundo plano. O ideal é `página segue "à vista" ✅ · batida em segundo
+   plano ✅`.
+2. **Se aparecer `batida em segundo plano ❌`**, o portal bloqueou o Web Worker.
+   A Central cai para as reservas sozinha e continua funcionando, mas mais
+   devagar. Me avise qual convênio.
+3. **Se for o Amil** (ou outro portal em Angular), é esperado: ele roda em modo
+   leve e fica mais lento quando minimizado — mas não para. Trocar isso trava a
+   tela do portal em "Buscando".
+4. **Se for o TST**, a janelinha de controle tem laço próprio. Deixe-a aberta em
+   algum canto da tela em vez de minimizar.
+
+E olhe os **📄 Logs**: se a aba ficou escondida e nada andou por 1 minuto, tem um
+aviso registrado lá dizendo exatamente onde parou.
+
+---
+
 ## O contador não bate com o Ctrl+F
 
 Conte de novo depois que a automação terminar. Durante a execução o número é

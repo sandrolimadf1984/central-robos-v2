@@ -2,14 +2,15 @@
 
 # 🤖 Central de Automação — CLTzinho Digital
 
-**Versão 3.0.0 · ambiente de testes**
+**Versão 3.1.0 · ambiente de testes**
 
 *Cole os códigos uma vez. O robô digita por você.*
 
-![Versão](https://img.shields.io/badge/vers%C3%A3o-3.0.0-2d7dff)
+![Versão](https://img.shields.io/badge/vers%C3%A3o-3.1.0-2d7dff)
 ![Convênios](https://img.shields.io/badge/conv%C3%AAnios-30-4dc3ff)
 ![Robôs](https://img.shields.io/badge/rob%C3%B4s-25-1a5bcc)
 ![Testes](https://img.shields.io/badge/testes-25%20passando-2ecc71)
+![Segundo plano](https://img.shields.io/badge/aba%20minimizada-continua%20rodando-2ecc71)
 
 </div>
 
@@ -163,11 +164,59 @@ recebe nem quando ele é chamado.
 | ❌ **Erro que explica** | Convênio, código, problema, causa provável e os botões TENTAR NOVAMENTE / COPIAR RELATÓRIO / ENCERRAR |
 | 🛠️ **Diagnóstico** | Confere se a tela tem o que o robô espera. Responde rápido: *o portal mudou?* |
 | 📄 **Logs** | Tudo que aconteceu na sessão, com botão de copiar |
-| ⭐ **Mais utilizados** | Os convênios que a pessoa mais abre ficam no topo |
 | 🟢 **Status do robô** | Bolinha no card, controlada pelo `status.json` |
 | 🔧 **Avisos** | `avisos.json` manda recado geral ou por convênio, com botão ENTENDI |
 | ⚙️ **Versão e rollback** | Versão à vista e versões guardadas em `releases/` |
-| 🧪 **Testes** | 25 testes das regras críticas |
+| 🔽 **Segundo plano de verdade** | Dá para minimizar e trabalhar em outra aba: o robô continua. Veja abaixo |
+| 🧪 **Testes** | 25 testes das regras críticas + teste da aba minimizada |
+
+---
+
+## 🔽 Minimizar sem parar a automação
+
+O Chrome desacelera de propósito as abas que saem da frente: os relógios da
+página passam de 100ms para 1 segundo e, depois de 5 minutos, para **1 por
+minuto**. É por isso que o robô parecia congelar quando a aba era minimizada.
+
+E tem uma segunda causa, que quase ninguém percebe: **muito portal se cala
+sozinho** quando nota que saiu da frente, para poupar recurso.
+
+A V3 ataca as duas coisas ao mesmo tempo:
+
+| O que faz | Para que serve |
+|---|---|
+| **Operário (Web Worker)** | A batida do robô passa a vir de um processo paralelo, que o Chrome **não freia**. É a batida principal |
+| **Página segue "à vista"** | O portal passa a enxergar `document.hidden = false` o tempo todo. Para ele, a aba nunca saiu da frente |
+| **Relógio de tela** | O `requestAnimationFrame` **morre de vez** em aba escondida. Enquanto ela estiver no fundo, esses pedidos passam pela agenda da Central |
+| **Aba acordada** | Um som grave e inaudível faz o Chrome tratar a aba como "tocando algo" — o que a livra do congelamento pesado |
+| **Moldura e janelas juntas** | A moldura e as janelas que o robô abre recebem o mesmo tratamento, cada uma é escondida por conta própria |
+| **Corrente de reservas** | Se o portal bloquear o Worker, entra a placa de som; se bloquear, entram as mensagens; por último, o relógio comum. Nunca para de vez |
+
+**Como saber se está ligado:** ao clicar em INICIAR, o rodapé mostra o estado —
+`página segue "à vista" ✅ · batida em segundo plano ✅ · ...`. E o painel de
+progresso avisa: *🔽 Pode minimizar e trabalhar em outra aba*.
+
+### A exceção: o Amil (e portais sensíveis)
+
+Portais feitos em Angular **dependem do relógio deles** para saber que a busca
+terminou. Se a Central toma esse relógio, a tela fica presa em "Buscando" para
+sempre — foi o que aconteceu com o Amil.
+
+Por isso esses convênios rodam em **modo leve** (`semMotor: true`): recebem a aba
+acordada e o "página segue à vista", mas **o relógio continua sendo deles**.
+
+Consequência honesta: minimizado, o Amil continua trabalhando, mas mais devagar
+(o Chrome segura em ~1 passo por segundo). Ele não para — só anda em ritmo menor.
+
+### O que ainda pode escapar
+
+- A **janelinha do TST** roda o laço dela dentro da própria janela. Se você
+  minimizar *aquela* janela, ela desacelera. Deixe-a aberta em algum canto.
+- Portal com regra de segurança muito apertada pode bloquear o Worker. A Central
+  cai para as reservas sozinha e avisa no rodapé qual batida está valendo.
+- Se a aba ficar escondida e **nada andar por 1 minuto**, isso vai para os
+  📄 Logs. É a pista que diz onde o segundo plano falhou, em vez de a gente
+  ficar adivinhando depois.
 
 ---
 
@@ -195,7 +244,7 @@ Se a V3 der problema, tem três saídas, da mais rápida para a mais completa:
 1. **Voltar para a Central de sempre** — o favorito antigo continua funcionando.
    Ela nunca foi tocada.
 2. **Fixar uma versão anterior da V3** — no favorito, troque `central.js` por
-   `releases/v3.0.0/central-completo.js`.
+   `releases/v3.1.0/central-completo.js`.
 3. **Rodar a Central de hoje a partir daqui** — no favorito, aponte para
    `releases/v2.1.0-legado/central.js`. Esse arquivo é **byte a byte idêntico**
    ao que está em produção hoje (MD5 `183ee948d18abb5ec368c077797e4c23`).
@@ -205,7 +254,8 @@ Se a V3 der problema, tem três saídas, da mais rápida para a mais completa:
 ## 🧪 Testes
 
 ```bash
-node tests/rodar.js
+node tests/rodar.js          # 25 testes, não precisa instalar nada
+node tests/segundo-plano.js  # aba minimizada (precisa de: npm install jsdom)
 ```
 
 Ou abra `tests/index.html` no navegador. Não acessam portal nenhum.

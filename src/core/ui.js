@@ -124,12 +124,6 @@
             </div>
         </div>
 
-        <div id="cr-favoritos-caixa" style="display:none;margin-bottom:10px;">
-            <div style="font-size:9.5px;font-weight:800;color:#f5c518;letter-spacing:1.4px;margin-bottom:6px;">⭐ MAIS UTILIZADOS</div>
-            <div id="cr-favoritos" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-            <div style="height:1px;background:#1b3157;margin:11px 0 2px;"></div>
-        </div>
-
         <div id="cr-vazio" style="display:none;text-align:center;color:#8fa8cf;font-size:11.5px;padding:18px 10px;line-height:1.6;">
             Nenhum convênio encontrado.<br><span style="color:#5f7aa3;font-size:10.5px;">Apague a pesquisa para ver todos.</span>
         </div>
@@ -416,7 +410,6 @@
     const resumoFila = document.getElementById('cr-fila-resumo');
     const container = document.getElementById('cr-lista');
 
-    let itemAtual = null;        // card aberto no momento
     let textoParaRodar = null;   // usado no "continuar de onde parou"
 
     const mostrarStatus = (texto, cor) => {
@@ -499,7 +492,11 @@
             '<span style="color:#2ecc71;">✓ ' + d.feitos + ' concluídos</span>' +
             '<span style="color:#4dc3ff;">⏳ ' + pendentes + ' pendentes</span>' +
             '<span style="color:' + (d.erros ? '#ff6b5e' : '#5f7aa3') + ';">⚠ ' + d.erros + ' erros</span>' +
-            '</div>';
+            '</div>' +
+            (d.rodando
+                ? '<div style="margin-top:9px;padding-top:8px;border-top:1px solid #1b3157;font-size:10.5px;color:#2ecc71;line-height:1.5;">' +
+                  '🔽 Pode minimizar e trabalhar em outra aba — o robô continua daqui.</div>'
+                : '');
     };
 
     /* ═══════════════════════════════════════════════════════════
@@ -534,42 +531,6 @@
             CR.fila.descartar(chave);
             caixaRetomar.style.display = 'none';
         };
-    };
-
-    /* ═══════════════════════════════════════════════════════════
-     *  FAVORITOS / MAIS UTILIZADOS
-     * ═══════════════════════════════════════════════════════════ */
-    const contarUso = rotulo => {
-        const usos = U.ler('usos', {});
-        usos[rotulo] = (usos[rotulo] || 0) + 1;
-        U.guardar('usos', usos);
-    };
-
-    const maisUsados = () => {
-        const usos = U.ler('usos', {});
-        const fixos = U.ler('favoritos', []);
-        const lista = Object.keys(usos).sort((a, b) => usos[b] - usos[a]);
-        const juntos = fixos.concat(lista.filter(x => fixos.indexOf(x) === -1));
-        return juntos.slice(0, 5);
-    };
-
-    const desenharFavoritos = () => {
-        const caixa = document.getElementById('cr-favoritos-caixa');
-        const alvo = document.getElementById('cr-favoritos');
-        const nomes = maisUsados();
-        if (!nomes.length) { caixa.style.display = 'none'; return; }
-        caixa.style.display = 'block';
-        alvo.innerHTML = '';
-        nomes.forEach(nome => {
-            const item = CR.EXIBICAO.filter(x => x.rotulo === nome)[0];
-            if (!item) return;
-            const b = document.createElement('span');
-            b.style.cssText = 'background:#10182b;border:1px solid #2a3b5c;border-radius:14px;padding:5px 11px;' +
-                'font-size:10.5px;color:#eaf3ff;cursor:pointer;font-weight:700;';
-            b.innerText = nome;
-            b.onclick = () => abrirJanelaCodigos(item);
-            alvo.appendChild(b);
-        });
     };
 
     /* ═══════════════════════════════════════════════════════════
@@ -621,8 +582,6 @@
         const filtrar = () => {
             const termo = U.semAcento(campo.value.trim());
             limpar.style.display = campo.value ? 'block' : 'none';
-            document.getElementById('cr-favoritos-caixa').style.display =
-                (termo || !maisUsados().length) ? 'none' : 'block';
             let achou = 0;
             const cards = container.querySelectorAll('.cr-card');
             for (let i = 0; i < cards.length; i++) {
@@ -652,7 +611,6 @@
             alert('Há uma automação em andamento. Pare ela antes de escolher outro convênio.');
             return;
         }
-        itemAtual = item;
         CR.estado.roboAtual = item.chave;
         document.getElementById('cr-j-nome').innerText = item.rotulo;
         document.getElementById('cr-j-desc').innerText = item.desc;
@@ -820,7 +778,6 @@
         telaJanela.style.display = 'none';
         telaPainel.style.display = 'none';
         telaHome.style.display = 'flex';
-        desenharFavoritos();
     };
 
     document.getElementById('cr-voltar').onclick = voltarParaHome;
@@ -856,7 +813,6 @@
         caixaDiag.style.display = 'none';
         caixaRetomar.style.display = 'none';
         textoParaRodar = texto;
-        if (itemAtual) contarUso(itemAtual.rotulo);
         CR.auto.iniciar(CR.estado.roboAtual, texto);
     };
 
@@ -899,7 +855,6 @@
 
     /* avisos gerais e favoritos assim que a tela existe */
     CR.avisos.desenharGeral(document.getElementById('cr-aviso-slot'));
-    desenharFavoritos();
     CR.log.ok('Central de Automação ' + CR.versao + ' pronta · ' + CR.EXIBICAO.length + ' convênios');
 
 })(window.CentralRobos);

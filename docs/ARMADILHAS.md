@@ -114,3 +114,48 @@ o índice do laço. Escolha sempre o item que **casa com o código**.
 Se a janela nasceu a partir de OUTRA aba, o navegador não deixa esta aba
 enxergá-la de jeito nenhum. Por isso, no CNU Unimed, o app **abre ele mesmo** a
 janela de autorização: assim ela é nossa desde o começo.
+
+---
+
+### Aba minimizada: são DUAS causas, não uma
+
+Quando o robô "para ao minimizar", o instinto é culpar o Chrome. Ele é só metade
+do problema:
+
+1. **O Chrome freia** os relógios do thread principal de aba escondida (100ms
+   vira 1s; depois de 5 minutos, 1 por minuto).
+2. **O portal se cala sozinho** ao ver `document.hidden = true`. Muita tela
+   moderna faz isso para poupar recurso.
+
+Resolver só a primeira não adianta. É preciso também fazer a página acreditar que
+continua à vista.
+
+---
+
+### O reforço não pode derrubar a automação
+
+O reforço por mensagens (`MessageChannel`) era criado sem proteção. Em portal que
+bloqueia esse recurso, o erro subia e **a automação inteira parava** — justamente
+o contrário do que o reforço existe para fazer.
+
+Regra: **todo recurso de apoio precisa de uma reserva e de um `try`**. Se falhar,
+cai para o próximo; nunca derruba o robô.
+
+---
+
+### O motor não pode acreditar no próprio disfarce
+
+A Central faz a página enxergar `document.hidden = false`. Só que o motor precisa
+saber a **verdade** para escolher a batida certa — se ele acreditar no próprio
+disfarce, escolhe o relógio comum (freado) achando que a aba está à vista.
+
+Por isso o medidor original é guardado **antes** do disfarce, e o motor consulta
+`escondidoDeVerdade()`, nunca `document.hidden`.
+
+---
+
+### requestAnimationFrame não é freado: ele é desligado
+
+Ao contrário dos relógios, o `requestAnimationFrame` **para por completo** em aba
+escondida. Portal que dependa dele para redesenhar fica parado de vez, por mais
+que os relógios estejam funcionando.

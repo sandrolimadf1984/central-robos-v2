@@ -31,7 +31,7 @@
     var REPO  = 'sandrolimadf1984/central-robos-v2';
     var RAMO  = 'main';
     var BASE  = 'https://raw.githubusercontent.com/' + REPO + '/' + RAMO + '/';
-    var VERSAO = '3.0.0';
+    var VERSAO = '3.1.0';
 
     /* Lista de reserva: vale quando o manifest.json não puder ser lido.
        Ao acrescentar um módulo novo, o certo é editar o manifest.json —
