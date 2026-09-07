@@ -3,6 +3,13 @@
  *
  *      node tests/tst-portal-falso.js
  *
+ *  ATENÇÃO: o robô do TST que está NO AR é o original do colega, e
+ *  não é ele que este teste roda. O que roda aqui é o painel novo,
+ *  que está GUARDADO e desativado — ele passa na réplica mas falhou
+ *  no portal real. O teste fica por dois motivos: registra o que já
+ *  foi entendido do portal, e serve de ponto de partida se um dia a
+ *  correção for retomada com teste no portal de verdade.
+ *
  *  Precisa do jsdom:  npm install jsdom
  *
  *  Esta réplica reproduz DE PROPÓSITO o defeito relatado:

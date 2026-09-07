@@ -248,3 +248,18 @@ O teste da janelinha passava enquanto o portal real falhava. Motivo: ele
 colocava os dados na janelinha **na mão**, pulando exatamente o trecho quebrado.
 
 Teste sempre pelo caminho que roda em produção, do começo ao fim.
+
+---
+
+### Réplica que passa não é portal real que funciona
+
+No TST, três tentativas passaram na réplica e falharam no portal de verdade:
+a moldura, o painel novo e a correção do painel. A réplica só sabe o que eu
+consegui descrever dela — o portal real sempre sabe mais.
+
+A regra que sai daí: **quando duas tentativas seguidas falham no portal real,
+pare e devolva o robô ao estado que funcionava.** Insistir com o robô da equipe
+no ar custa mais do que conviver com um defeito conhecido.
+
+Entender a causa (aqui, o campo `noreset`) é meio caminho — mas só vira correção
+com teste no portal de verdade, mexendo o mínimo possível.

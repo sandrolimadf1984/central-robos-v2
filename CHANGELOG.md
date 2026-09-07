@@ -5,6 +5,55 @@ Formato: o mais recente em cima.
 
 ---
 
+## [3.5.0] — 2026-09-07
+
+**O TST voltou a ser exatamente o que era.** Nenhuma das minhas três tentativas
+funcionou no portal real, e o certo era parar de insistir.
+
+### O que está no ar agora
+
+O robô original do colega, com a janelinha de controle de sempre —
+**byte a byte idêntico** ao do `central.js` 2.1.0 (sha `be21b30cf2a40546`).
+A ficha dele em `src/config/convenios.js` também voltou a ser a original
+(`modo: "tst"`), caractere por caractere.
+
+Ou seja: o TST se comporta hoje exatamente como se comportava antes de eu
+encostar nele.
+
+### Defeito conhecido, que volta junto
+
+O primeiro código costuma não entrar. A causa está entendida e anotada em
+`docs/ARMADILHAS.md`: o campo `#noreset_txCodTabela` guarda o valor entre um item
+e outro, então só na primeira vez o portal sai para buscar a tabela TUSS — e
+enquanto busca, limpa o campo do código.
+
+Entender a causa não bastou. Uma nova tentativa só deve acontecer com teste no
+portal real e mexendo o mínimo possível.
+
+### Guardadas, desativadas
+
+As três tentativas continuam no arquivo, fora do ar, para não se perder o que foi
+aprendido:
+
+| Guardado | O que era | Por que saiu |
+|---|---|---|
+| `TST_PAINEL_NOVO_DESATIVADO` | Painel completo na janelinha | No portal real os códigos não chegaram na janela |
+| `TST_MOLDURA_DESATIVADA` | Robô de moldura da 3.3.0 | A moldura devolve a tela inicial do convênio |
+| `TST_DESATIVADO_MOLDURA` | Primeira tentativa de moldura | Já vinha desativada da 2.1.0 |
+
+### O que ficou de bom destas rodadas
+
+Nada disso encosta no TST, e tudo continua valendo:
+
+- a **trava de segurança da moldura** (3.4.0), que desiste e devolve a página
+  como estava quando a tela recarregada não tem os campos esperados
+- as armadilhas anotadas em `docs/ARMADILHAS.md`: o campo `noreset`, a moldura
+  que recarrega, `innerText` × `textContent`, `offsetParent` com `position:fixed`,
+  e não passar dado por dentro de HTML montado com texto
+- a réplica do portal do TST em `tests/`, que fica como ponto de partida
+
+---
+
 ## [3.4.1] — 2026-09-07
 
 Correção do defeito visto no primeiro uso real da janelinha: o painel abriu

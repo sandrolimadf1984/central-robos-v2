@@ -1,50 +1,40 @@
 /* ════════════════════════════════════════════════════════════════
- *  TST — PAINEL DE CONTROLE
+ *  TST
  *
- *  POR QUE ESTE ROBÔ É DIFERENTE DOS OUTROS
+ *  O QUE ESTÁ NO AR: o robô original, do colega. Ele abre uma
+ *  janelinha de controle que sobrevive aos recarregamentos do portal
+ *  e pilota a página pelo window.opener. Está aqui BYTE A BYTE como
+ *  sempre esteve — nada foi tocado.
+ *
+ *  POR QUE ELE PRECISA SER ASSIM
  *
  *  O portal do TST recarrega a página INTEIRA a cada procedimento
- *  salvo. Como o app mora dentro da página do portal, ele morre
- *  junto — não existe jeito de contornar isso por dentro da página.
+ *  salvo. O app mora dentro da página do portal, então morre junto.
+ *  A janelinha não recarrega, por isso sobrevive.
  *
- *  Duas saídas foram tentadas e falharam:
+ *  O QUE JÁ FOI TENTADO E NÃO DEU CERTO (set/2026)
  *
- *    1. Rodar na própria página → o robô morre no primeiro código.
- *    2. Rodar na MOLDURA (portal dentro de um quadro) → a moldura
- *       precisa BUSCAR a página de novo, e a tela em que o atendente
- *       está no TST é resultado de um envio de formulário. Buscar o
- *       endereço de novo devolve a TELA INICIAL do convênio, não a
- *       guia. Foi exatamente o que aconteceu no teste real.
+ *    · rodar na MOLDURA → a moldura precisa buscar a página de novo,
+ *      e no TST a tela em que o atendente está é resultado de um
+ *      envio de formulário: buscar o endereço de novo devolve a TELA
+ *      INICIAL do convênio. Testado no portal real, não serve.
+ *    · um PAINEL NOVO na janelinha → no portal real os códigos não
+ *      chegaram direito na janela e o painel ficou parado. Duas
+ *      tentativas de correção não resolveram.
  *
- *  A única arquitetura que funciona aqui é a janelinha: um painel
- *  numa janela separada, que NÃO recarrega e por isso sobrevive,
- *  pilotando a aba do portal pelo window.opener. A aba do portal
- *  continua na tela certa, porque ninguém pede nada de novo a ela.
+ *  As três tentativas ficam guardadas no fim deste arquivo,
+ *  desativadas, para não se perder o que já foi aprendido.
  *
- *  O QUE MUDOU EM RELAÇÃO À JANELINHA ANTIGA
+ *  DEFEITO CONHECIDO DO ROBÔ QUE ESTÁ NO AR
  *
- *    · o painel tem a cara do app: barra de progresso, percentual,
- *      código atual, item X de Y, concluídos / pendentes / erros;
- *    · o primeiro código passou a entrar (explicação abaixo);
- *    · nada entra duas vezes;
- *    · a ordem da colagem é respeitada;
- *    · o painel continua trabalhando com a janela minimizada.
+ *  O primeiro código costuma não entrar. A causa foi identificada:
+ *  o campo #noreset_txCodTabela guarda o valor entre um item e outro,
+ *  então só na PRIMEIRA vez o portal sai para buscar a tabela TUSS —
+ *  e enquanto busca, limpa o campo do código.
  *
- *  O PRIMEIRO CÓDIGO QUE NÃO ENTRAVA
- *
- *  O campo da tabela chama-se #noreset_txCodTabela — o "noreset" no
- *  nome entrega o segredo: o portal NÃO limpa esse campo entre um
- *  procedimento e outro.
- *
- *  Na PRIMEIRA vez ele está vazio, então receber "16" é uma mudança
- *  de verdade e o portal sai para buscar a tabela TUSS — e enquanto
- *  busca, ele LIMPA o campo do código. O robô antigo já tinha
- *  digitado, o portal apagava, e o primeiro exame se perdia. Da
- *  segunda em diante a tabela já estava em 16, nada era buscado,
- *  nada era apagado.
- *
- *  A correção não depende de acertar tempo: o robô escreve o código
- *  e CONFERE se ele ficou. Se o portal apagou, escreve de novo.
+ *  A causa está entendida, mas a correção só deve ser tentada de novo
+ *  com teste no portal real, mexendo o mínimo possível. Até lá, o
+ *  robô fica exatamente como está: funcionando como sempre funcionou.
  * ════════════════════════════════════════════════════════════════ */
 (function (CR) {
     "use strict";
@@ -533,6 +523,41 @@
         tipo: "padrao",
         ativo: true,
         portal: {
+            seletores: ["input[value=\"Adicionar Procedimento\"]"],
+            nota: "Botão \"Adicionar Procedimento\" (a tela recarrega a cada item)"
+        },
+        origem: "central.js v2.1.0, linhas 1332-1346",
+        executar: () => {
+            (function () {
+                var b = document.createElement("button");
+                b.innerText = "⚖️ ROBÔ EQUILIBRADO (TUSS 16)";
+                b.style = "position:fixed;top:10px;left:50%;transform:translateX(-50%);padding:15px;background:#008b8b;color:white;font-weight:bold;border:3px solid white;z-index:9999999;box-shadow:0 0 20px #000;cursor:pointer;border-radius:8px;font-family:monospace;font-size:14px;";
+                b.onclick = function () {
+                    var w = window.open("", "RoboSafe", "width=400,height=600");
+                    if (!w) { alert('O navegador bloqueou a janelinha de controle.\nPermita pop-ups para este site e clique de novo.'); return; }
+                    var h = `<html><head><title>Robô Equilibrado</title><style>body{background:#111;color:#fff;font-family:sans-serif;padding:10px}textarea{width:100%;height:150px;background:#222;color:#0f0;border:1px solid #555;font-family:monospace}button{width:100%;padding:10px;margin-top:10px;cursor:pointer;font-weight:bold}.g{background:#0d0;color:#000}.r{background:#f33;color:#fff}#l{margin-top:10px;height:300px;overflow-y:auto;background:#000;border:1px solid #444;font-family:monospace;font-size:11px;padding:5px}</style></head><body><h3>⚖️ Robô TUSS (Estável)</h3><p>Cole a lista:</p><textarea id="t"></textarea><button id="bIni" class="g" onclick="go()">▶ INICIAR</button><button id="bPar" class="r" style="display:none" onclick="stop()">⏹ PARAR</button><div id="l"></div> <script> var r=false,idx=0,lst=[],win=window.opener; function log(m){ var d=document.createElement("div"); d.innerText="["+new Date().toLocaleTimeString()+"] "+m; document.getElementById("l").prepend(d) } function modo(rodando){var i=document.getElementById("bIni"),p=document.getElementById("bPar"),t=document.getElementById("t");if(i)i.style.display=rodando?"none":"block";if(p)p.style.display=rodando?"block":"none";if(t)t.disabled=rodando;}function stop(){r=false;modo(false);log("PARADO.")} function go(){ var v=document.getElementById("t").value; var raw=v.match(/\\b\\d{8}\\b/g); if(!raw)return alert("Sem códigos!"); var counts={}; raw.forEach(x=>counts[x]=(counts[x]||0)+1); var unicos=[...new Set(raw)]; var order=unicos.filter(c=>counts[c]===1).concat(unicos.filter(c=>counts[c]>1)); lst=order.map(k=>({cod:k,qtd:counts[k]})); if(!win||win.closed)return alert("Janela principal fechada!"); r=true;idx=0;modo(true);log("Iniciando "+lst.length+" itens...");loop() } async function waitEl(sel,timeout=5000){ var t=0; while(t<timeout){ if(!r)throw new Error("Parado"); var el=win.document.querySelector(sel); if(el&&el.offsetParent!==null)return el; await new Promise(x=>setTimeout(x,200)); t+=200 } throw new Error("Timeout: "+sel) } async function pause(ms){await new Promise(x=>setTimeout(x,ms))} async function loop(){ if(!r)return; if(idx>=lst.length){r=false;modo(false);log("✅ FIM! "+lst.length+" itens lançados.");return alert("FIM!")} var item=lst[idx],c=item.cod,q=item.qtd; log("Item "+(idx+1)+": "+c+(q>1?" (Qtd: "+q+")":"")); try{ log("Aguardando botão..."); await waitEl("input[value='Adicionar Procedimento']",10000); await pause(500); var b1=win.document.querySelector("input[value='Adicionar Procedimento']")||win.document.querySelector("input[name='adicionarProcedimento']"); b1.click(); var fixo=await waitEl("#noreset_txCodTabela"); await pause(500); fixo.value="16"; fixo.dispatchEvent(new win.Event('change',{bubbles:true})); fixo.dispatchEvent(new win.Event('blur',{bubbles:true})); try{win.$(fixo).trigger('change')}catch(e){} var inp=await waitEl("#codItemProcedimento"); await pause(300); inp.value=c; inp.dispatchEvent(new win.Event('change',{bubbles:true})); inp.dispatchEvent(new win.Event('blur',{bubbles:true})); var qtd=win.document.getElementById("procedimento.numQtdSolicitada"); if(qtd){ qtd.value=q; qtd.dispatchEvent(new win.Event('input',{bubbles:true})); qtd.dispatchEvent(new win.Event('change',{bubbles:true})); } await pause(500); var b2=await waitEl(".ui-dialog-buttonpane button:nth-child(2)"); if(!b2.innerText.includes("Salvar")&&!b2.innerText.includes("Confirmar")){ var bs=win.document.querySelectorAll("button"); for(var b of bs)if(b.innerText.includes("Salvar"))b2=b } b2.click(); log("Salvo! Aguardando..."); idx++; await pause(1500); loop() }catch(e){ log("ERRO: "+e.message); r=false; modo(false); alert("Erro: "+e.message) } } <\/script></body></html>`;
+                    w.document.write(h);
+                    this.remove()
+                };
+                document.body.appendChild(b);
+            })();
+        }
+    });
+
+    /* ────────────────────────────────────────────────────────────
+     *  GUARDADOS, DESATIVADOS
+     *
+     *  Nada aqui roda. Ficam por história e para poder voltar atrás.
+     *  Para usar algum, troque ativo: false por true — e desative o
+     *  que estiver no ar, senão dois robôs disputam a mesma chave.
+     * ──────────────────────────────────────────────────────────── */
+
+    CR.registrar({
+        chave: "TST_PAINEL_NOVO_DESATIVADO",
+        nome: "TST (painel novo — guardado, fora do ar)",
+        tipo: "padrao",
+        ativo: false,
+        portal: {
             seletores: ["input[value=\"Adicionar Procedimento\"]", "#noreset_txCodTabela"],
             nota: "Botão de adicionar e campo da tabela TUSS (a tela recarrega a cada item)"
         },
@@ -587,46 +612,6 @@
                         "procedimento salvo e leva o app junto — a janelinha não.";
                 }
             } catch (e) { }
-        }
-    });
-
-    /* Exportado para os testes conseguirem rodar o motor da janelinha
-       fora do navegador (tests/tst-portal-falso.js). Não é usado em produção. */
-    CR.__tst = { motor: motorTST, casca: cascaHTML };
-
-
-    /* ────────────────────────────────────────────────────────────
-     *  GUARDADOS, DESATIVADOS
-     *
-     *  Ficam aqui por história e para poder voltar atrás. Para usar
-     *  qualquer um deles, troque ativo: false por ativo: true — e
-     *  desative o de cima, senão dois robôs disputam a mesma chave.
-     * ──────────────────────────────────────────────────────────── */
-
-    CR.registrar({
-        chave: "TST_JANELINHA_ORIGINAL",
-        nome: "TST (janelinha original do colega, guardada)",
-        tipo: "padrao",
-        ativo: false,
-        portal: {
-            seletores: ["input[value=\"Adicionar Procedimento\"]"],
-            nota: "Botão \"Adicionar Procedimento\" (a tela recarrega a cada item)"
-        },
-        origem: "central.js v2.1.0, linhas 1332-1346",
-        executar: () => {
-            (function () {
-                var b = document.createElement("button");
-                b.innerText = "⚖️ ROBÔ EQUILIBRADO (TUSS 16)";
-                b.style = "position:fixed;top:10px;left:50%;transform:translateX(-50%);padding:15px;background:#008b8b;color:white;font-weight:bold;border:3px solid white;z-index:9999999;box-shadow:0 0 20px #000;cursor:pointer;border-radius:8px;font-family:monospace;font-size:14px;";
-                b.onclick = function () {
-                    var w = window.open("", "RoboSafe", "width=400,height=600");
-                    if (!w) { alert('O navegador bloqueou a janelinha de controle.\nPermita pop-ups para este site e clique de novo.'); return; }
-                    var h = `<html><head><title>Robô Equilibrado</title><style>body{background:#111;color:#fff;font-family:sans-serif;padding:10px}textarea{width:100%;height:150px;background:#222;color:#0f0;border:1px solid #555;font-family:monospace}button{width:100%;padding:10px;margin-top:10px;cursor:pointer;font-weight:bold}.g{background:#0d0;color:#000}.r{background:#f33;color:#fff}#l{margin-top:10px;height:300px;overflow-y:auto;background:#000;border:1px solid #444;font-family:monospace;font-size:11px;padding:5px}</style></head><body><h3>⚖️ Robô TUSS (Estável)</h3><p>Cole a lista:</p><textarea id="t"></textarea><button id="bIni" class="g" onclick="go()">▶ INICIAR</button><button id="bPar" class="r" style="display:none" onclick="stop()">⏹ PARAR</button><div id="l"></div> <script> var r=false,idx=0,lst=[],win=window.opener; function log(m){ var d=document.createElement("div"); d.innerText="["+new Date().toLocaleTimeString()+"] "+m; document.getElementById("l").prepend(d) } function modo(rodando){var i=document.getElementById("bIni"),p=document.getElementById("bPar"),t=document.getElementById("t");if(i)i.style.display=rodando?"none":"block";if(p)p.style.display=rodando?"block":"none";if(t)t.disabled=rodando;}function stop(){r=false;modo(false);log("PARADO.")} function go(){ var v=document.getElementById("t").value; var raw=v.match(/\\b\\d{8}\\b/g); if(!raw)return alert("Sem códigos!"); var counts={}; raw.forEach(x=>counts[x]=(counts[x]||0)+1); var unicos=[...new Set(raw)]; var order=unicos.filter(c=>counts[c]===1).concat(unicos.filter(c=>counts[c]>1)); lst=order.map(k=>({cod:k,qtd:counts[k]})); if(!win||win.closed)return alert("Janela principal fechada!"); r=true;idx=0;modo(true);log("Iniciando "+lst.length+" itens...");loop() } async function waitEl(sel,timeout=5000){ var t=0; while(t<timeout){ if(!r)throw new Error("Parado"); var el=win.document.querySelector(sel); if(el&&el.offsetParent!==null)return el; await new Promise(x=>setTimeout(x,200)); t+=200 } throw new Error("Timeout: "+sel) } async function pause(ms){await new Promise(x=>setTimeout(x,ms))} async function loop(){ if(!r)return; if(idx>=lst.length){r=false;modo(false);log("✅ FIM! "+lst.length+" itens lançados.");return alert("FIM!")} var item=lst[idx],c=item.cod,q=item.qtd; log("Item "+(idx+1)+": "+c+(q>1?" (Qtd: "+q+")":"")); try{ log("Aguardando botão..."); await waitEl("input[value='Adicionar Procedimento']",10000); await pause(500); var b1=win.document.querySelector("input[value='Adicionar Procedimento']")||win.document.querySelector("input[name='adicionarProcedimento']"); b1.click(); var fixo=await waitEl("#noreset_txCodTabela"); await pause(500); fixo.value="16"; fixo.dispatchEvent(new win.Event('change',{bubbles:true})); fixo.dispatchEvent(new win.Event('blur',{bubbles:true})); try{win.$(fixo).trigger('change')}catch(e){} var inp=await waitEl("#codItemProcedimento"); await pause(300); inp.value=c; inp.dispatchEvent(new win.Event('change',{bubbles:true})); inp.dispatchEvent(new win.Event('blur',{bubbles:true})); var qtd=win.document.getElementById("procedimento.numQtdSolicitada"); if(qtd){ qtd.value=q; qtd.dispatchEvent(new win.Event('input',{bubbles:true})); qtd.dispatchEvent(new win.Event('change',{bubbles:true})); } await pause(500); var b2=await waitEl(".ui-dialog-buttonpane button:nth-child(2)"); if(!b2.innerText.includes("Salvar")&&!b2.innerText.includes("Confirmar")){ var bs=win.document.querySelectorAll("button"); for(var b of bs)if(b.innerText.includes("Salvar"))b2=b } b2.click(); log("Salvo! Aguardando..."); idx++; await pause(1500); loop() }catch(e){ log("ERRO: "+e.message); r=false; modo(false); alert("Erro: "+e.message) } } <\/script></body></html>`;
-                    w.document.write(h);
-                    this.remove()
-                };
-                document.body.appendChild(b);
-            })();
         }
     });
 

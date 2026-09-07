@@ -41,6 +41,20 @@ Se preferir recomeçar, clique em **COMEÇAR DO ZERO**.
 
 ---
 
+## TST: o primeiro código não entra
+
+É um defeito conhecido do portal do TST e ele continua valendo.
+
+**O que fazer:** depois que a automação terminar, confira a lista no portal. Se o
+primeiro código não estiver lá, lance ele à mão. Os demais entram normalmente.
+
+A causa já está identificada (o campo da tabela guarda o valor entre um item e
+outro e o portal limpa o código enquanto busca a tabela na primeira vez), mas as
+tentativas de correção falharam no portal real. O robô ficou como sempre foi até
+haver como testar direito.
+
+---
+
 ## Minimizei e o robô parou
 
 Não deveria mais acontecer. Confira nesta ordem:
