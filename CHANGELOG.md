@@ -5,6 +5,47 @@ Formato: o mais recente em cima.
 
 ---
 
+## [3.5.1] — 2026-09-07
+
+**Achada a causa do primeiro código do TST — e o culpado era eu.**
+
+Comparando com o `central.js` de produção (que funciona), o robô do TST era
+byte a byte igual, a ficha era igual e a ponte de entrega era igual. A diferença
+estava numa coisa que a V3 fazia **na página do portal** e o app de produção não.
+
+### O que era
+
+A versão 3.1.0, ao fazer a automação sobreviver com a aba minimizada, passou a
+fazer a página acreditar que continua à vista. Parte disso era **barrar os
+eventos** `blur`, `visibilitychange` e `pagehide` na janela, em modo captura.
+
+O problema: a **captura passa por todo evento**, inclusive os que nascem num
+campo lá dentro. E vários robôs — TST, ASSEDF, CNU Unimed — escrevem no campo e
+**disparam `blur` de propósito** para avisar o portal. É assim que o portal do
+TST sai para buscar a tabela TUSS e validar o código.
+
+Ou seja: o aviso do robô ao portal era engolido antes de chegar nele.
+
+### Corrigido
+
+O barrador agora só age em evento que é **da própria janela ou do documento** —
+que é o que o disfarce precisa. Evento nascido num campo passa reto, como sempre
+passou. O portal volta a receber exatamente os mesmos avisos que recebe com o app
+de produção.
+
+### Adicionado
+
+- Teste de regressão em `tests/segundo-plano.js`: com o motor ligado e a aba
+  minimizada, dispara `input`, `change` e `blur` num campo e confere que os três
+  chegam. **Verifiquei que ele falha com o código antigo e passa com a correção**
+  — teste que não pega o defeito não vale nada.
+
+### Sem mudança nos robôs
+
+Nenhum robô foi tocado. O do TST continua byte a byte o original do colega.
+
+---
+
 ## [3.5.0] — 2026-09-07
 
 **O TST voltou a ser exatamente o que era.** Nenhuma das minhas três tentativas

@@ -77,7 +77,24 @@
         try {
             if (doc.__crDisfarce) return false;
 
-            const engolir = ev => { try { ev.stopImmediatePropagation(); } catch (e) { } };
+            /* CUIDADO — LIÇÃO CARA: este engolidor fica em modo CAPTURA na
+               janela, e a captura passa por TODO evento, inclusive os que
+               nascem num campo lá dentro.
+
+               Vários robôs avisam o portal disparando 'blur' no campo depois
+               de escrever (é assim que o portal sai para buscar a tabela ou
+               validar o código). Engolir tudo matava esses avisos: o portal
+               não era notificado e o lançamento não pegava.
+
+               Por isso só engolimos o que é da JANELA ou do DOCUMENTO —
+               que é o que interessa para o disfarce. Evento de campo passa
+               reto, como sempre passou. */
+            const engolir = ev => {
+                try {
+                    if (ev.target !== win && ev.target !== doc) return;
+                    ev.stopImmediatePropagation();
+                } catch (e) { }
+            };
 
             Object.defineProperty(doc, 'hidden', { configurable: true, get: () => false });
             Object.defineProperty(doc, 'visibilityState', { configurable: true, get: () => 'visible' });

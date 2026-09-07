@@ -43,15 +43,13 @@ Se preferir recomeçar, clique em **COMEÇAR DO ZERO**.
 
 ## TST: o primeiro código não entra
 
-É um defeito conhecido do portal do TST e ele continua valendo.
+**Corrigido na 3.5.1.** Se ainda acontecer, confira em ⚙️ Versão se você está
+mesmo na 3.5.1 ou mais nova — o favorito busca a versão do repositório, então
+basta fechar a Central e clicar de novo.
 
-**O que fazer:** depois que a automação terminar, confira a lista no portal. Se o
-primeiro código não estiver lá, lance ele à mão. Os demais entram normalmente.
-
-A causa já está identificada (o campo da tabela guarda o valor entre um item e
-outro e o portal limpa o código enquanto busca a tabela na primeira vez), mas as
-tentativas de correção falharam no portal real. O robô ficou como sempre foi até
-haver como testar direito.
+Era a Central que barrava o aviso que o robô manda ao portal quando termina de
+escrever no campo. Sem esse aviso, o portal não saía para buscar a tabela e o
+primeiro código se perdia.
 
 ---
 

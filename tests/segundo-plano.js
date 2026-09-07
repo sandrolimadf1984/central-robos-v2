@@ -124,6 +124,39 @@ conferir('ao terminar, o disfarce sai e a página volta a enxergar a verdade',
     doc.hidden === true);
 minimizada = false;
 
+// ── O AVISO DO ROBÔ AO PORTAL NÃO PODE SER ENGOLIDO ───────────
+// Vários robôs escrevem no campo e disparam 'blur' para o portal ir
+// buscar a tabela ou validar o código. O disfarce de visibilidade
+// chegou a engolir esses avisos, e o lançamento não pegava.
+console.log('');
+CR.estado.rodando = true;
+CR.motor.ligar(false);
+minimizada = true;
+
+(function () {
+    const campo = doc.createElement('input');
+    campo.id = 'campo-do-portal';
+    doc.body.appendChild(campo);
+
+    let avisos = { blur: 0, change: 0, input: 0 };
+    ['blur', 'change', 'input'].forEach(nome => {
+        campo.addEventListener(nome, () => { avisos[nome]++; });
+    });
+
+    campo.value = '16';
+    ['input', 'change', 'blur'].forEach(nome => {
+        campo.dispatchEvent(new win.Event(nome, { bubbles: true }));
+    });
+
+    conferir('o portal RECEBE o blur que o robô dispara no campo', avisos.blur === 1,
+        'é assim que o portal sai para buscar a tabela e validar o código');
+    conferir('e recebe também o change e o input', avisos.change === 1 && avisos.input === 1);
+})();
+
+CR.motor.desligar();
+CR.estado.rodando = false;
+minimizada = false;
+
 // ── modo leve (Amil e outros portais sensíveis) ────────────────
 console.log('');
 CR.estado.rodando = true;

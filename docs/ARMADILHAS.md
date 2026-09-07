@@ -263,3 +263,25 @@ no ar custa mais do que conviver com um defeito conhecido.
 
 Entender a causa (aqui, o campo `noreset`) é meio caminho — mas só vira correção
 com teste no portal de verdade, mexendo o mínimo possível.
+
+---
+
+### Nunca barre evento em modo captura na janela
+
+A captura passa por **todo** evento da página, inclusive os que nascem num campo
+lá dentro. Um `addEventListener('blur', engolir, true)` na janela mata também o
+`blur` que o robô dispara no campo — e vários robôs (TST, ASSEDF, CNU Unimed)
+usam exatamente isso para avisar o portal de que terminaram de escrever.
+
+Foi assim que o primeiro código do TST parou de entrar: o portal precisa do
+`blur` para sair buscando a tabela TUSS, e o aviso era engolido antes de chegar
+nele.
+
+Se precisar barrar evento de janela, **confira o alvo primeiro**:
+
+```js
+if (ev.target !== window && ev.target !== document) return;
+```
+
+E vale a regra maior: **o app não pode ficar entre o robô e o portal.** Tudo que
+o robô manda para a página tem de chegar lá exatamente como saiu.

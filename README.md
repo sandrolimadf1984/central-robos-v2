@@ -2,11 +2,11 @@
 
 # 🤖 Central de Automação — CLTzinho Digital
 
-**Versão 3.5.0 · ambiente de testes**
+**Versão 3.5.1 · ambiente de testes**
 
 *Cole os códigos uma vez. O robô digita por você.*
 
-![Versão](https://img.shields.io/badge/vers%C3%A3o-3.5.0-2d7dff)
+![Versão](https://img.shields.io/badge/vers%C3%A3o-3.5.1-2d7dff)
 ![Convênios](https://img.shields.io/badge/conv%C3%AAnios-30-4dc3ff)
 ![Robôs](https://img.shields.io/badge/rob%C3%B4s-25-1a5bcc)
 ![Testes](https://img.shields.io/badge/testes-30%20passando-2ecc71)
@@ -280,7 +280,7 @@ Se a V3 der problema, tem três saídas, da mais rápida para a mais completa:
 1. **Voltar para a Central de sempre** — o favorito antigo continua funcionando.
    Ela nunca foi tocada.
 2. **Fixar uma versão anterior da V3** — no favorito, troque `central.js` por
-   `releases/v3.5.0/central-completo.js`.
+   `releases/v3.5.1/central-completo.js`.
 3. **Rodar a Central de hoje a partir daqui** — no favorito, aponte para
    `releases/v2.1.0-legado/central.js`. Esse arquivo é **byte a byte idêntico**
    ao que está em produção hoje (MD5 `183ee948d18abb5ec368c077797e4c23`).
