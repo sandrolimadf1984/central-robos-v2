@@ -33,7 +33,8 @@
         som: null, relogio: null, rtc: null, ligado: false, originais: null,
         tarefas: {}, seq: 0, girando: false, alvo: 0, canal: null, diag: [],
         ultimoPulso: 0, guarda: null, backup: null,
-        operario: null, visao: null, rafOriginais: null, batidas: 0, acordadas: []
+        operario: null, visao: null, rafOriginais: null, batidas: 0, acordadas: [],
+        rede: null, porqueSemOperario: null, escalonou: 0
     };
     let dialogos = null;
 
@@ -77,25 +78,6 @@
         try {
             if (doc.__crDisfarce) return false;
 
-            /* CUIDADO — LIÇÃO CARA: este engolidor fica em modo CAPTURA na
-               janela, e a captura passa por TODO evento, inclusive os que
-               nascem num campo lá dentro.
-
-               Vários robôs avisam o portal disparando 'blur' no campo depois
-               de escrever (é assim que o portal sai para buscar a tabela ou
-               validar o código). Engolir tudo matava esses avisos: o portal
-               não era notificado e o lançamento não pegava.
-
-               Por isso só engolimos o que é da JANELA ou do DOCUMENTO —
-               que é o que interessa para o disfarce. Evento de campo passa
-               reto, como sempre passou. */
-            const engolir = ev => {
-                try {
-                    if (ev.target !== win && ev.target !== doc) return;
-                    ev.stopImmediatePropagation();
-                } catch (e) { }
-            };
-
             Object.defineProperty(doc, 'hidden', { configurable: true, get: () => false });
             Object.defineProperty(doc, 'visibilityState', { configurable: true, get: () => 'visible' });
             try { Object.defineProperty(doc, 'webkitHidden', { configurable: true, get: () => false }); } catch (e) { }
@@ -104,11 +86,14 @@
             const focoOriginal = doc.hasFocus;
             doc.hasFocus = () => true;
 
-            win.addEventListener('visibilitychange', engolir, true);
-            win.addEventListener('blur', engolir, true);
-            win.addEventListener('pagehide', engolir, true);
+            /* NÃO barramos mais evento nenhum. Barrar já quebrou duas coisas:
+               engoliu o 'blur' que os robôs disparam para avisar o portal, e
+               engoliu o 'visibilitychange' que a própria Central usa para
+               religar o som. O que faz o disfarce funcionar é a PROPRIEDADE
+               (document.hidden = false), e ela sozinha basta: quase todo
+               portal confere a propriedade dentro do próprio tratador. */
 
-            doc.__crDisfarce = { engolir, focoOriginal, win, doc };
+            doc.__crDisfarce = { focoOriginal, win, doc };
             motor.acordadas.push(doc.__crDisfarce);
             return true;
         } catch (e) { return false; }
@@ -122,9 +107,6 @@
                 try { delete d.doc.webkitHidden; } catch (e) { }
                 try { delete d.doc.webkitVisibilityState; } catch (e) { }
                 if (d.focoOriginal) d.doc.hasFocus = d.focoOriginal;
-                d.win.removeEventListener('visibilitychange', d.engolir, true);
-                d.win.removeEventListener('blur', d.engolir, true);
-                d.win.removeEventListener('pagehide', d.engolir, true);
                 delete d.doc.__crDisfarce;
             } catch (e) { }
         });
@@ -159,7 +141,10 @@
     const ligarOperario = () => {
         try {
             if (motor.operario) return true;
-            if (!window.Worker || !window.Blob || !window.URL || !URL.createObjectURL) return false;
+            if (!window.Worker || !window.Blob || !window.URL || !URL.createObjectURL) {
+                motor.porqueSemOperario = 'este navegador não tem Worker/Blob';
+                return false;
+            }
 
             const tarefa = [
                 'var t = null;',
@@ -182,12 +167,26 @@
                 // de dois em dois segundos, confere se o som não caiu
                 if ((++motor.batidas % 50) === 0) revisarSom();
             };
-            w.onerror = () => { };
+            w.onerror = () => {
+                /* Operário morreu no meio do caminho: sobe para a próxima
+                   batida em vez de deixar a automação congelar. */
+                motor.operario = null;
+                motor.porqueSemOperario = 'o operário parou no meio';
+                escalarBatida();
+            };
             w.postMessage({ ms: 40 });
 
             motor.operario = { w, endereco };
+            motor.porqueSemOperario = null;
             return true;
-        } catch (e) { return false; }
+        } catch (e) {
+            /* Portal com regra de segurança apertada (CSP sem blob:) recusa
+               criar o operário. É a causa mais comum de a automação travar
+               com a aba minimizada — por isso o motivo fica registrado. */
+            motor.porqueSemOperario = e.message || 'o portal recusou criar o operário';
+            try { CR.log.aviso('operário recusado pelo portal: ' + motor.porqueSemOperario); } catch (e2) { }
+            return false;
+        }
     };
 
     const desligarOperario = () => {
@@ -198,6 +197,108 @@
             URL.revokeObjectURL(motor.operario.endereco);
         } catch (e) { }
         motor.operario = null;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    //  BATIDA DE REDE — o último recurso que ainda não é freado
+    //
+    //  Quando o portal recusa o operário (regra de segurança) E o relógio
+    //  da placa de som não sobe, tudo o mais que sobra é freado pelo
+    //  Chrome e a automação congela com a aba minimizada.
+    //
+    //  Aqui abrimos DUAS pontas de conexão dentro da própria máquina,
+    //  ligadas uma na outra, e ficamos jogando uma mensagem de ida e
+    //  volta entre elas. Resposta de rede não passa pelo relógio da
+    //  página, então o Chrome não freia.
+    //
+    //  Custo: enquanto a aba está escondida, isso ocupa processador.
+    //  Por isso só entra em campo quando as duas batidas boas falharam,
+    //  e só enquanto a aba está mesmo escondida.
+    // ═══════════════════════════════════════════════════════════════
+    const ligarBatidaRede = () => {
+        try {
+            if (motor.rede) return true;
+            if (!window.RTCPeerConnection) return false;
+
+            const a = new RTCPeerConnection();
+            const b = new RTCPeerConnection();
+            const canal = a.createDataChannel('cr', { ordered: false, maxRetransmits: 0 });
+
+            a.onicecandidate = e => { if (e.candidate) b.addIceCandidate(e.candidate).catch(() => { }); };
+            b.onicecandidate = e => { if (e.candidate) a.addIceCandidate(e.candidate).catch(() => { }); };
+            b.ondatachannel = ev => {
+                ev.channel.onmessage = () => { try { ev.channel.send('x'); } catch (e) { } };
+            };
+
+            let ultimo = 0;
+            canal.onopen = () => { try { canal.send('x'); } catch (e) { } };
+            canal.onmessage = () => {
+                if (!motor.ligado || !motor.rede) return;
+                /* Só bate se a aba estiver mesmo escondida e o operário não
+                   tiver voltado — senão desperdiça processador à toa. */
+                if (!escondidoDeVerdade() || motor.operario) {
+                    motor.originais && motor.originais.stO.call(window, () => {
+                        try { if (motor.rede) canal.send('x'); } catch (e) { }
+                    }, 250);
+                    return;
+                }
+                const agora = Date.now();
+                if (agora - ultimo >= 25) { ultimo = agora; pulso(); }
+                try { canal.send('x'); } catch (e) { }
+            };
+
+            a.createOffer()
+                .then(o => a.setLocalDescription(o))
+                .then(() => b.setRemoteDescription(a.localDescription))
+                .then(() => b.createAnswer())
+                .then(ans => b.setLocalDescription(ans))
+                .then(() => a.setRemoteDescription(b.localDescription))
+                .catch(() => { });
+
+            motor.rede = { a, b, canal };
+            return true;
+        } catch (e) { return false; }
+    };
+
+    const desligarBatidaRede = () => {
+        try {
+            if (!motor.rede) return;
+            try { motor.rede.canal.close(); } catch (e) { }
+            try { motor.rede.a.close(); } catch (e) { }
+            try { motor.rede.b.close(); } catch (e) { }
+        } catch (e) { }
+        motor.rede = null;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    //  ESCALONAMENTO — quando a batida morre, sobe para a próxima
+    //
+    //  A ordem é: operário → placa de som → rede. O vigia comum não
+    //  serve para acionar isso (ele também é freado quando a aba está
+    //  escondida), então quem chama é a própria batida que ainda vive.
+    // ═══════════════════════════════════════════════════════════════
+    const escalarBatida = () => {
+        if (!motor.ligado) return;
+        const parada = Date.now() - motor.ultimoPulso;
+        if (parada < 1500) return;
+
+        motor.escalonou = (motor.escalonou || 0) + 1;
+        try { CR.log.aviso('batida parada há ' + parada + 'ms — subindo para a próxima'); } catch (e) { }
+
+        if (!motor.operario && ligarOperario()) {
+            motor.diag.push('operário religado ✅');
+            return;
+        }
+        revisarSom();
+        if (!motor.relogio && motor.som && ligarRelogioSom()) {
+            motor.diag.push('relógio da placa religado ✅');
+            return;
+        }
+        if (!motor.rede && ligarBatidaRede()) {
+            motor.diag.push('batida de rede ativada ✅');
+        }
+        motor.girando = false;
+        agendarPulso();
     };
 
     // O Chrome às vezes suspende o som sozinho. Sem som, a aba volta a
@@ -225,7 +326,12 @@
             osc.start();
             const acordar = () => { try { if (ac.state !== 'running') ac.resume(); } catch (e) { } };
             acordar();
+            /* Vários gatilhos de propósito: se o Chrome suspender o som, a aba
+               deixa de ser "tocando algo" e vira candidata a ser CONGELADA —
+               aí a automação para de vez. Religar é o que mantém a aba viva. */
             document.addEventListener('visibilitychange', acordar);
+            window.addEventListener('focus', acordar);
+            window.addEventListener('pageshow', acordar);
             motor.som = { ac, osc, acordar };
             return true;
         } catch (e) { return false; }
@@ -308,6 +414,7 @@
         if (!motor.ligado) return;
         const agora = Date.now();
         motor.ultimoPulso = agora;
+        motor.contaPulsos = (motor.contaPulsos || 0) + 1;
         const vencidas = [];
         Object.keys(motor.tarefas).forEach(id => {
             const t = motor.tarefas[id];
@@ -399,7 +506,9 @@
 
         // Batida principal: o operário, que o Chrome não freia.
         const temOperario = ligarOperario();
-        motor.diag.push(temOperario ? 'batida em segundo plano ✅' : 'batida em segundo plano ❌ → usando a placa de som');
+        motor.diag.push(temOperario
+            ? 'batida em segundo plano ✅'
+            : 'batida em segundo plano ❌ (' + (motor.porqueSemOperario || 'recusada') + ')');
 
         const temRelogio = temSom ? ligarRelogioSom() : false;
         motor.diag.push(temRelogio ? 'relógio da placa de som ✅' : 'relógio da placa de som ❌ → reforço ativo');
@@ -465,16 +574,24 @@
         motor.backup = siO.call(window, pulso, 200);
 
         // Vigia: se as batidas pararem, aciona o reforço na hora
+        /* Se o operário não subiu, a batida de rede entra JÁ — não dá para
+           esperar o vigia perceber, porque o vigia também é freado quando a
+           aba está escondida. */
+        if (!temOperario) {
+            const temRede = ligarBatidaRede();
+            motor.diag.push(temRede ? 'batida de rede ✅ (reserva)' : 'batida de rede ❌');
+        }
+
         motor.guarda = siO.call(window, () => {
             if (!motor.ligado) return;
+            revisarSom();   // sem som, a aba pode ser congelada pelo Chrome
             if (Date.now() - motor.ultimoPulso > 2000) {
                 if (motor.relogio) {
                     desligarRelogioSom();
                     motor.diag = motor.diag.map(d => d.indexOf('relógio') === 0
                         ? 'relógio da placa ⚠️ parou → reforço ativo' : d);
                 }
-                motor.girando = false;
-                agendarPulso();
+                escalarBatida();
             }
         }, 1000);
 
@@ -486,6 +603,7 @@
         try { if (motor.originais) motor.originais.ciO.call(window, motor.guarda); } catch (e) { }
         motor.backup = null; motor.guarda = null;
         desligarOperario();
+        desligarBatidaRede();
         restaurarVisibilidade();
         try {
             if (motor.rafOriginais) {
@@ -583,6 +701,29 @@
         encerrarModoAutomacao: encerrarModoAutomacao,
         manterAcordada: manterAcordada,
         escondidoDeVerdade: escondidoDeVerdade,
+        /* Quantas batidas por segundo estão acontecendo de verdade.
+           É o número que diz se o segundo plano está funcionando ou não. */
+        medirBatida: () => {
+            const agora = Date.now();
+            const desde = motor.medidoEm || agora;
+            const n = (motor.contaPulsos || 0) - (motor.pulsosMedidos || 0);
+            const seg = Math.max(0.001, (agora - desde) / 1000);
+            motor.medidoEm = agora;
+            motor.pulsosMedidos = motor.contaPulsos || 0;
+            return {
+                porSegundo: Math.round(n / seg),
+                escondida: escondidoDeVerdade(),
+                paradaHa: agora - (motor.ultimoPulso || agora),
+                operario: !!motor.operario,
+                som: !!(motor.som && motor.som.ac && motor.som.ac.state === 'running')
+            };
+        },
+        batidaAtiva: () => (motor.operario ? 'operário (Web Worker)'
+            : motor.relogio ? 'relógio da placa de som'
+            : motor.rede ? 'batida de rede'
+            : 'relógio comum do navegador (FREADO em aba escondida)'),
+        porqueSemOperario: () => motor.porqueSemOperario,
+        escalonamentos: () => motor.escalonou || 0,
         diagnostico: () => motor.diag
     };
 

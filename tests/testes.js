@@ -242,6 +242,40 @@
         verdade(guardados.indexOf('aviso-0') === -1, 'e descartou os mais antigos');
     });
 
+    /* ══════════ SITUAÇÃO DO CONVÊNIO NO CARD ══════════ */
+
+    teste('convênio não listado no status.json fica normal', function () {
+        CR.avisos.status = {};
+        igual(CR.avisos.estadoDe('AMIL'), null, 'sem marca nenhuma');
+    });
+
+    teste('estado "fora" pinta o card de vermelho e pede confirmação', function () {
+        CR.avisos.status = { INAS: { estado: 'fora', nota: 'Site com inconsistência' } };
+        var e = CR.avisos.estadoDe('INAS');
+        igual(e.texto, 'Site com inconsistência', 'usa a nota escrita no arquivo');
+        igual(e.travar, true, 'pede confirmação antes de iniciar');
+        verdade(!!e.borda && !!e.fundo, 'tem cor de borda e de fundo');
+    });
+
+    teste('sem nota escrita, entra o texto padrão do estado', function () {
+        CR.avisos.status = { AMIL: { estado: 'manutencao' } };
+        igual(CR.avisos.estadoDe('AMIL').texto, 'Robô em manutenção', 'texto padrão');
+    });
+
+    teste('estado "atencao" marca o card mas NÃO trava', function () {
+        CR.avisos.status = { TRE: { estado: 'atencao', nota: 'Portal mudou' } };
+        var e = CR.avisos.estadoDe('TRE');
+        igual(e.travar, false, 'deixa iniciar sem perguntar');
+        igual(e.texto, 'Portal mudou', 'mostra a nota');
+    });
+
+    teste('estado escrito errado não quebra a tela', function () {
+        CR.avisos.status = { PLENUM: { estado: 'inventado', nota: 'oi' } };
+        var e = CR.avisos.estadoDe('PLENUM');
+        verdade(e !== null && !!e.cor, 'cai num estado seguro em vez de dar erro');
+        CR.avisos.status = {};
+    });
+
     /* ══════════ CATÁLOGO DE CONVÊNIOS (quando disponível) ══════════ */
 
     if (CR.EXIBICAO && CR.infoRobos) {

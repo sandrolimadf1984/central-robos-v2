@@ -1,6 +1,6 @@
 {
   "nome": "Central de Automação — CLTzinho Digital",
-  "versao": "3.5.1",
+  "versao": "3.6.0",
   "atualizadoEm": "2026-09-06",
   "observacao": "A ORDEM desta lista importa: utilidades primeiro, tela (ui.js) por último. Para acrescentar um convênio novo com portal novo, crie o arquivo em src/convenios/ e acrescente o caminho aqui.",
   "modulos": [

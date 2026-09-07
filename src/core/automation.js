@@ -447,6 +447,16 @@
             const fila = CR.estado.fila;
             if (!fila) return;
             const c = CR.fila.contagem(fila);
+
+            /* Se sobrou código, isto NÃO é uma automação concluída — por mais
+               que o robô tenha dito que terminou. Chamar de concluída faz o
+               atendente fechar a guia achando que está tudo lá dentro. */
+            if (situacao === 'concluida' && c.pendentes > 0) {
+                situacao = 'interrompida';
+                const faltam = CR.fila.pendentes(fila).map(i => i.cod);
+                mensagem = 'Terminou faltando ' + faltam.length + ' de ' + c.total +
+                    ': ' + faltam.join(', ');
+            }
             const duracao = Date.now() - (CR.estado.inicioEm || Date.now());
             U.seguro(() => CR.historico.registrar({
                 convenio: fila.convenio, total: c.total, feitos: c.feitos,
@@ -810,6 +820,24 @@
                 });
             }, 'manter-acordada');
 
+            /* MEDE a batida do motor. É este número que diz, na volta, se o
+               segundo plano funcionou ou se a aba foi congelada pelo Chrome.
+               Sem medir, a gente só teria achismo. */
+            U.seguro(() => {
+                const m = CR.motor.medirBatida();
+                CR.estado.batida = m;
+                if (m.escondida) {
+                    const pior = CR.estado.piorBatida;
+                    if (pior === undefined || m.porSegundo < pior) CR.estado.piorBatida = m.porSegundo;
+                    if (m.paradaHa > 4000) {
+                        CR.log.aviso('Segundo plano travou: ' + Math.round(m.paradaHa / 1000) +
+                            's sem batida com a aba escondida' +
+                            (m.operario ? '' : ' · o navegador não deixou criar a batida de fundo') +
+                            (m.som ? '' : ' · o som que mantém a aba viva está desligado'));
+                    }
+                }
+            }, 'medir-batida');
+
             /* Se estiver escondida e nada andar por muito tempo, isso vai
                para o log — é a pista de que o segundo plano falhou naquele
                portal, em vez de a gente ficar adivinhando depois. */
@@ -840,6 +868,8 @@
         CR.ui.modoParar();
         CR.estado.roboAtual = nome;
 
+        CR.estado.piorBatida = undefined;
+        CR.estado.batida = null;
         U.seguro(() => acompanhar.comecar(nome, texto), 'acompanhar');
 
         const infoAtual = CR.infoRobos[nome] || {};

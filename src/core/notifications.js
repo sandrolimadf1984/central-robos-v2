@@ -22,13 +22,13 @@
 
     /* ── ESTADOS POSSÍVEIS DE UM ROBÔ ────────────────────────── */
     var ESTADOS = {
-        ok:          { icone: '🟢', cor: '#2ecc71', texto: 'Funcionando normalmente' },
-        atencao:     { icone: '🟡', cor: '#ffd633', texto: 'Atualização recente' },
-        manutencao:  { icone: '🟡', cor: '#ffd633', texto: 'Em manutenção' },
-        atualizar:   { icone: '🟡', cor: '#ffd633', texto: 'Atualização necessária' },
-        fora:        { icone: '🔴', cor: '#ff6b5e', texto: 'Portal indisponível' },
-        erro:        { icone: '🔴', cor: '#ff6b5e', texto: 'Erro conhecido' },
-        desativado:  { icone: '⚪', cor: '#7f97bd', texto: 'Desativado temporariamente' }
+        ok:          { icone: '🟢', cor: '#2ecc71', borda: '',        fundo: '',        apagado: false, texto: 'Funcionando normalmente' },
+        atencao:     { icone: '🟡', cor: '#ffd633', borda: '#8a6d00', fundo: '#211a05', apagado: false, texto: 'Atualização recente' },
+        manutencao:  { icone: '🔧', cor: '#ffd633', borda: '#8a6d00', fundo: '#211a05', apagado: false, texto: 'Robô em manutenção' },
+        atualizar:   { icone: '🟡', cor: '#ffd633', borda: '#8a6d00', fundo: '#211a05', apagado: false, texto: 'Atualização necessária' },
+        fora:        { icone: '🔴', cor: '#ff6b5e', borda: '#b91f16', fundo: '#250d11', apagado: false, texto: 'Site com inconsistência' },
+        erro:        { icone: '⚠️', cor: '#ff6b5e', borda: '#b91f16', fundo: '#250d11', apagado: false, texto: 'Erro conhecido' },
+        desativado:  { icone: '⛔', cor: '#7f97bd', borda: '#3d5a85', fundo: '#0d1424', apagado: true,  texto: 'Desativado temporariamente' }
     };
 
     var A = {
@@ -91,7 +91,17 @@
                 chave: s.estado,
                 icone: base.icone,
                 cor: base.cor,
-                texto: s.nota || base.texto
+                borda: base.borda,
+                fundo: base.fundo,
+                apagado: base.apagado,
+                texto: s.nota || base.texto,
+                titulo: base.texto,
+                /* estados que pedem confirmação antes de deixar iniciar:
+                   é o que evita alguém sair automatizando num portal que a
+                   equipe já sabe que está com problema */
+                travar: (s.estado === 'fora' || s.estado === 'erro' ||
+                         s.estado === 'manutencao' || s.estado === 'atualizar' ||
+                         s.estado === 'desativado')
             };
         },
 

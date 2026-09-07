@@ -285,3 +285,19 @@ if (ev.target !== window && ev.target !== document) return;
 
 E vale a regra maior: **o app não pode ficar entre o robô e o portal.** Tudo que
 o robô manda para a página tem de chegar lá exatamente como saiu.
+
+---
+
+### O disfarce de visibilidade não pode barrar eventos — nem os nossos
+
+Já barrou duas coisas essenciais:
+
+1. o `blur` que os robôs disparam no campo para avisar o portal (3.5.1);
+2. o `visibilitychange` que a **própria Central** usa para religar o som (3.6.0).
+
+O segundo é pior do que parece: sem som, o Chrome deixa de tratar a aba como
+"tocando algo" e pode **congelá-la por completo**. O disfarce feito para a
+automação sobreviver em segundo plano era o que a matava.
+
+Regra: o disfarce mexe **só na propriedade** `document.hidden`. Nada de barrar
+evento. E a Central nunca pode ficar entre o robô e o portal.

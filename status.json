@@ -1,19 +1,26 @@
 {
-  "_leia_isto": "Situação de cada robô. Vira uma bolinha colorida no canto do card e uma faixa ao abrir o convênio. Robô que não estiver listado aqui aparece normal, sem bolinha.",
+  "_leia_isto": "Este arquivo controla a COR DO CARD de cada convênio na tela. Edite pelo GitHub (lápis → Commit changes) e a mudança chega para a equipe inteira no próximo clique do favorito. Convênio que NÃO estiver listado aqui aparece normal.",
 
-  "_estados_possiveis": {
-    "ok": "🟢 Funcionando normalmente",
-    "atencao": "🟡 Atualização recente",
-    "manutencao": "🟡 Em manutenção",
-    "atualizar": "🟡 Atualização necessária",
-    "fora": "🔴 Portal indisponível",
-    "erro": "🔴 Erro conhecido",
-    "desativado": "⚪ Desativado temporariamente"
+  "_como_usar": "Dentro de \"convenios\", acrescente uma linha com a CHAVE DO ROBÔ, o estado e a nota. A nota é o texto que aparece no card — se você não escrever nota, entra o texto padrão do estado.",
+
+  "_estados": {
+    "fora":       "🔴 card VERMELHO — padrão: 'Site com inconsistência'",
+    "erro":       "⚠️ card VERMELHO — padrão: 'Erro conhecido'",
+    "manutencao": "🔧 card AMARELO  — padrão: 'Robô em manutenção'",
+    "atualizar":  "🟡 card AMARELO  — padrão: 'Atualização necessária'",
+    "atencao":    "🟡 card AMARELO  — padrão: 'Atualização recente'",
+    "desativado": "⛔ card APAGADO  — padrão: 'Desativado temporariamente'",
+    "ok":         "sem destaque nenhum (igual a não listar)"
   },
 
-  "_exemplo": "\"INAS\": { \"estado\": \"manutencao\", \"nota\": \"Portal mudou em 06/09 — em ajuste\" }",
+  "_exemplos_prontos_para_copiar": {
+    "INAS": { "estado": "fora", "nota": "Site do convênio com inconsistência" },
+    "AMIL": { "estado": "manutencao", "nota": "Robô sendo atualizado — previsão 14h" },
+    "TRE": { "estado": "atencao", "nota": "Portal mudou em ago/2026" }
+  },
+
+  "_chaves_dos_robos": "AFFEGO, AMIL, ASSEDF, ASSEFAZ, CAMARA, CNU UNIMED, INAS, MEDSENIOR/UN SEG, PLANASSISTE MPU, PLENUM, PM/STJ, POSTAL, SULAMERICA, TJDF, TRE, TRF, TRT, TST. Uma chave pode atender vários cards: marcar ASSEFAZ pinta os 8 convênios que usam esse robô.",
 
   "convenios": {
-    "TRE": { "estado": "atencao", "nota": "Portal mudou em ago/2026 e ficou igual ao da PM" }
   }
 }

@@ -469,6 +469,45 @@
     /* ═══════════════════════════════════════════════════════════
      *  PAINEL DE PROGRESSO
      * ═══════════════════════════════════════════════════════════ */
+    /* Enquanto roda: diz se o segundo plano está de pé, com o número medido.
+       Quando o atendente volta de outra aba, é aqui que ele vê se o robô
+       trabalhou ou se a aba foi congelada pelo navegador. */
+    const rodapeSegundoPlano = () => {
+        const b = CR.estado.batida;
+        const pior = CR.estado.piorBatida;
+        let linha = '🔽 Pode minimizar e trabalhar em outra aba — o robô continua daqui.';
+        let cor = '#2ecc71';
+
+        if (b && b.paradaHa > 4000) {
+            cor = '#ff6b5e';
+            linha = '⚠️ O navegador segurou esta aba por ' + Math.round(b.paradaHa / 1000) +
+                's. Deixe-a à vista até terminar.';
+        } else if (pior !== undefined && pior < 3) {
+            cor = '#ffd633';
+            linha = '⚠️ Em segundo plano o robô ficou lento (' + pior +
+                ' batidas/s). Terminando, confira a lista no portal.';
+        } else if (pior !== undefined) {
+            linha = '🔽 Segundo plano funcionando (' + pior + ' batidas/s minimizado).';
+        }
+
+        return '<div style="margin-top:9px;padding-top:8px;border-top:1px solid #1b3157;' +
+            'font-size:10.5px;color:' + cor + ';line-height:1.5;">' + linha + '</div>';
+    };
+
+    /* Ao terminar: se sobrou código, isso tem de aparecer em vermelho.
+       "Concluída" com item faltando faz o atendente fechar a guia sem conferir. */
+    const rodapeFinal = d => {
+        const faltam = Math.max(0, d.total - d.feitos);
+        if (!d.total || faltam === 0) return '';
+        const fila = CR.estado.fila;
+        const lista = fila ? CR.fila.pendentes(fila).map(i => i.cod).join(', ') : '';
+        return '<div style="margin-top:9px;padding-top:8px;border-top:1px solid #b91f16;' +
+            'font-size:10.5px;color:#ff8f83;line-height:1.6;">' +
+            '<b>⚠️ FALTARAM ' + faltam + ' de ' + d.total + '</b><br>' +
+            (lista ? '<span style="font-family:Consolas,monospace;">' + U.escapar(lista) + '</span><br>' : '') +
+            'Confira no portal e lance à mão, ou clique em INICIAR para continuar de onde parou.</div>';
+    };
+
     const desenharProgresso = d => {
         if (!d || (!d.total && !d.rodando)) { caixaProgresso.style.display = 'none'; return; }
         const pct = U.percentual(d.feitos, d.total);
@@ -493,10 +532,7 @@
             '<span style="color:#4dc3ff;">⏳ ' + pendentes + ' pendentes</span>' +
             '<span style="color:' + (d.erros ? '#ff6b5e' : '#5f7aa3') + ';">⚠ ' + d.erros + ' erros</span>' +
             '</div>' +
-            (d.rodando
-                ? '<div style="margin-top:9px;padding-top:8px;border-top:1px solid #1b3157;font-size:10.5px;color:#2ecc71;line-height:1.5;">' +
-                  '🔽 Pode minimizar e trabalhar em outra aba — o robô continua daqui.</div>'
-                : '');
+            (d.rodando ? rodapeSegundoPlano() : rodapeFinal(d));
     };
 
     /* ═══════════════════════════════════════════════════════════
@@ -538,9 +574,40 @@
      * ═══════════════════════════════════════════════════════════ */
     const cardsPorChave = [];
 
+    /* ═══════════════════════════════════════════════════════════
+     *  SITUAÇÃO DO CONVÊNIO NO CARD
+     *
+     *  Quando o status.json marca um convênio como fora do ar, em
+     *  manutenção ou com o site inconsistente, o CARD INTEIRO muda de
+     *  cor e ganha uma faixa com o recado. Assim dá para ver de longe,
+     *  sem precisar abrir o convênio para descobrir.
+     * ═══════════════════════════════════════════════════════════ */
+    const pintarCard = (card, chave) => {
+        /* limpa qualquer marca anterior */
+        const faixaAntiga = card.querySelector('[data-cr-estado]');
+        if (faixaAntiga) faixaAntiga.remove();
+        card.style.borderColor = '#1e2a44';
+        card.style.background = '#10182b';
+        card.style.opacity = '1';
+
+        const e = CR.avisos.estadoDe(chave);
+        if (!e || e.chave === 'ok' || !e.borda) return;
+
+        card.style.borderColor = e.borda;
+        card.style.background = e.fundo;
+        if (e.apagado) card.style.opacity = '0.72';
+
+        const faixa = document.createElement('div');
+        faixa.setAttribute('data-cr-estado', '1');
+        faixa.style.cssText = 'margin-top:9px;padding-top:7px;border-top:1px solid ' + e.borda +
+            ';font-size:9.5px;font-weight:700;line-height:1.4;color:' + e.cor + ';';
+        faixa.innerHTML = e.icone + ' ' + U.escapar(e.texto);
+        card.appendChild(faixa);
+    };
+
+
     for (const item of CR.EXIBICAO) {
         const { rotulo, icone, cor, desc } = item;
-        const estado = CR.avisos.estadoDe(item.chave);
         const card = document.createElement('div');
         card.className = 'cr-card';
         card.style.cssText = `
@@ -562,10 +629,10 @@
                 <div class="cr-seta" style="width:22px;height:22px;border-radius:50%;flex-shrink:0;background:#0e1a2e;border:1px solid #223a5e;display:flex;align-items:center;justify-content:center;font-size:11px;color:#cfe0ff;transition:all .15s ease;align-self:center;">›</div>
             </div>
             <div style="position:absolute;bottom:8px;left:14px;width:26px;height:3px;border-radius:2px;background:${cor};"></div>
-            ${estado ? '<div title="' + U.escapar(estado.texto) + '" style="position:absolute;top:9px;right:10px;font-size:9px;">' + estado.icone + '</div>' : ''}
         `;
         reservaDaMarca(card, icone, cor);
         cardsPorChave.push({ el: card, chave: item.chave });
+        U.seguro(() => pintarCard(card, item.chave), 'status-card');
         card.onclick = () => abrirJanelaCodigos(item);
         /* busca por nome, descrição, chave do robô e apelidos */
         card.dataset.busca = U.semAcento(rotulo + ' ' + desc + ' ' + item.chave);
@@ -766,12 +833,27 @@
                 'color:#ff9d93;border-radius:9px;padding:5px 12px;font-size:10px;font-weight:800;cursor:pointer;">' +
                 '🗑 APAGAR TUDO</span></div></div>' +
 
+                '<div style="background:#0a1424;border:1px solid #1b3157;border-radius:10px;padding:12px;margin-bottom:9px;">' +
+                '<div style="font-size:9.5px;color:#7f97bd;letter-spacing:1.2px;font-weight:700;">SEGUNDO PLANO</div>' +
+                '<div style="color:#cfe0ff;font-size:10.5px;margin-top:4px;line-height:1.6;">' +
+                'Mede, neste portal, se a automação continua andando com a janela minimizada. ' +
+                'Portal com regra de segurança apertada pode barrar a batida — este teste diz ' +
+                'se é o caso <b>aqui</b>, em vez de a gente ficar adivinhando.</div>' +
+                '<div id="cr-sp-saida" style="display:none;margin-top:9px;"></div>' +
+                '<div style="text-align:right;margin-top:8px;">' +
+                '<span data-cr="testar-sp" style="display:inline-block;background:#0e1a2e;border:1px solid #2d7dff;' +
+                'color:#cfe0ff;border-radius:9px;padding:5px 12px;font-size:10px;font-weight:800;cursor:pointer;">' +
+                '🔽 TESTAR SEGUNDO PLANO</span></div></div>' +
+
                 '<div style="background:#0a1424;border:1px solid #1b3157;border-radius:10px;padding:12px;">' +
                 '<div style="font-size:9.5px;color:#7f97bd;letter-spacing:1.2px;font-weight:700;">VOLTAR PARA UMA VERSÃO ANTERIOR</div>' +
                 '<div style="color:#cfe0ff;font-size:10.5px;margin-top:4px;line-height:1.7;">' +
                 'As versões ficam guardadas na pasta <b>releases/</b> do repositório. ' +
                 'Para voltar, troque o endereço do favorito pelo arquivo da versão desejada — ' +
                 'está explicado no <b>README</b>.</div></div>';
+
+            const bTeste = corpo.querySelector('[data-cr="testar-sp"]');
+            if (bTeste) bTeste.onclick = () => iniciarTesteSegundoPlano(bTeste);
 
             const bLimpar = corpo.querySelector('[data-cr="limpar-dados"]');
             if (bLimpar) bLimpar.onclick = () => {
@@ -791,6 +873,127 @@
     telaHome.querySelectorAll('.cr-ferramenta').forEach(b => {
         b.onclick = () => abrirPainel(b.getAttribute('data-painel'));
     });
+
+    /* ═══════════════════════════════════════════════════════════
+     *  TESTE DE SEGUNDO PLANO
+     *
+     *  Mede de verdade, NESTE portal, quantas batidas chegam enquanto
+     *  a janela está minimizada. É a diferença entre saber e achar:
+     *  se o portal barrar a batida boa, o teste mostra na hora, com o
+     *  motivo, em vez de a automação simplesmente congelar no meio.
+     * ═══════════════════════════════════════════════════════════ */
+    let testeSP = null;
+
+    const iniciarTesteSegundoPlano = (botao) => {
+        if (CR.estado.rodando) {
+            alert('Há uma automação em andamento. Espere ela terminar para fazer o teste.');
+            return;
+        }
+        const saida = document.getElementById('cr-sp-saida');
+        if (!saida) return;
+
+        if (testeSP) { encerrarTesteSegundoPlano(); return; }
+
+        CR.motor.ligar(false);
+
+        testeSP = {
+            inicio: Date.now(), batidas: 0, escondidas: 0, maiorVao: 0,
+            ultimo: Date.now(), tempoEscondido: 0, viuEscondido: false
+        };
+
+        testeSP.iv = setInterval(() => {
+            const agora = Date.now();
+            const vao = agora - testeSP.ultimo;
+            if (vao > testeSP.maiorVao) testeSP.maiorVao = vao;
+            if (CR.motor.escondidoDeVerdade()) {
+                testeSP.escondidas++;
+                testeSP.tempoEscondido += vao;
+                testeSP.viuEscondido = true;
+            }
+            testeSP.ultimo = agora;
+            testeSP.batidas++;
+            desenharTesteSP(saida);
+        }, 100);
+
+        botao.innerText = '⏹ VER RESULTADO';
+        desenharTesteSP(saida);
+    };
+
+    const desenharTesteSP = (saida) => {
+        if (!testeSP) return;
+        const seg = Math.round((Date.now() - testeSP.inicio) / 1000);
+        saida.style.display = 'block';
+        saida.style.cssText = 'display:block;margin-top:9px;background:#0d2033;border:1px solid #2d7dff;' +
+            'border-radius:10px;padding:11px;font-size:10.5px;color:#cfe0ff;line-height:1.6;';
+        saida.innerHTML =
+            '<b style="color:#4dc3ff;">MEDINDO...</b><br>' +
+            'Agora <b>minimize esta janela</b> (ou vá para outra aba) e volte depois de uns ' +
+            '<b>30 segundos</b>. Depois clique em <b>VER RESULTADO</b>.<br><br>' +
+            'Tempo: ' + seg + 's · batidas: ' + testeSP.batidas +
+            ' · escondida: ' + Math.round(testeSP.tempoEscondido / 1000) + 's';
+    };
+
+    const encerrarTesteSegundoPlano = () => {
+        if (!testeSP) return;
+        clearInterval(testeSP.iv);
+
+        const esperadas = Math.round(testeSP.tempoEscondido / 100);
+        const obtidas = testeSP.escondidas;
+        const aproveitamento = esperadas > 0 ? Math.round((obtidas / esperadas) * 100) : 0;
+        const batida = CR.motor.batidaAtiva();
+        const porque = CR.motor.porqueSemOperario();
+
+        let veredito, cor;
+        if (!testeSP.viuEscondido) {
+            veredito = 'Você não chegou a minimizar a janela — o teste não mediu nada. ' +
+                'Clique de novo e minimize por uns 30 segundos.';
+            cor = '#ffd633';
+        } else if (aproveitamento >= 80) {
+            veredito = 'FUNCIONANDO. A automação continua no mesmo ritmo com a janela minimizada.';
+            cor = '#2ecc71';
+        } else if (aproveitamento >= 30) {
+            veredito = 'PARCIAL. Continua andando, mas mais devagar do que deveria.';
+            cor = '#ffd633';
+        } else {
+            veredito = 'NÃO ESTÁ FUNCIONANDO neste portal. Ele barrou a batida e o Chrome freou ' +
+                'a página. Evite minimizar durante a automação aqui.';
+            cor = '#ff6b5e';
+        }
+
+        const linhas = [
+            'Tempo minimizada: ' + Math.round(testeSP.tempoEscondido / 1000) + 's',
+            'Batidas esperadas: ' + esperadas + ' · recebidas: ' + obtidas + ' (' + aproveitamento + '%)',
+            'Maior parada: ' + testeSP.maiorVao + 'ms',
+            'Batida em uso: ' + batida,
+            porque ? 'Operário recusado: ' + porque : 'Operário: criado normalmente',
+            'Trocas de batida durante o teste: ' + CR.motor.escalonamentos()
+        ];
+
+        const saida = document.getElementById('cr-sp-saida');
+        if (saida) {
+            saida.innerHTML =
+                '<div style="font-weight:800;color:' + cor + ';margin-bottom:6px;">' + U.escapar(veredito) + '</div>' +
+                linhas.map(l => '<div style="color:#9db4d8;">' + U.escapar(l) + '</div>').join('') +
+                '<div style="text-align:right;margin-top:8px;">' +
+                '<span data-cr="copiar-sp" style="display:inline-block;background:#0e1a2e;border:1px solid #223a5e;' +
+                'color:#cfe0ff;border-radius:9px;padding:5px 12px;font-size:10px;font-weight:800;cursor:pointer;">' +
+                '📋 COPIAR</span></div>';
+            const b = saida.querySelector('[data-cr="copiar-sp"]');
+            if (b) b.onclick = () => {
+                const rel = ['TESTE DE SEGUNDO PLANO — Central ' + CR.versao,
+                             'Página: ' + location.href, 'Quando: ' + U.dataHora(), '',
+                             veredito, ''].concat(linhas).join('\n');
+                b.innerText = U.copiar(rel) ? '✔ COPIADO' : '✖ NÃO DEU';
+            };
+        }
+
+        CR.log.info('Teste de segundo plano: ' + aproveitamento + '% · ' + batida);
+        if (!CR.estado.rodando) CR.motor.desligar();
+        testeSP = null;
+
+        const botao = document.querySelector('[data-cr="testar-sp"]');
+        if (botao) botao.innerText = '🔽 TESTAR DE NOVO';
+    };
 
     /* ═══════════════════════════════════════════════════════════
      *  BOTÕES
@@ -830,6 +1033,17 @@
             alert('Cole os códigos do convênio antes de iniciar!');
             return;
         }
+
+        /* Convênio marcado no status.json como fora do ar ou em manutenção:
+           avisa antes, mas deixa seguir se a pessoa quiser mesmo. */
+        const estado = CR.avisos.estadoDe(CR.estado.roboAtual);
+        if (estado && estado.travar) {
+            const seguir = confirm('⚠️ ' + (estado.titulo || 'ATENÇÃO') + '\n\n' +
+                estado.texto + '\n\n' +
+                'Este convênio está marcado pela equipe. Iniciar assim mesmo?');
+            if (!seguir) return;
+            CR.log.aviso('Iniciado mesmo com o convênio marcado como: ' + estado.texto);
+        }
         caixaErro.style.display = 'none';
         caixaDiag.style.display = 'none';
         caixaRetomar.style.display = 'none';
@@ -841,23 +1055,10 @@
      *  O QUE O RESTO DA CENTRAL USA DAQUI
      * ═══════════════════════════════════════════════════════════ */
     /* Chamado quando avisos.json e status.json terminam de chegar:
-       redesenha o recado do topo e a bolinha de situação de cada card. */
+       redesenha o recado do topo e a situação de cada card. */
     const atualizarAvisos = () => {
         U.seguro(() => CR.avisos.desenharGeral(document.getElementById('cr-aviso-slot')), 'aviso');
-        cardsPorChave.forEach(c => {
-            U.seguro(() => {
-                const antigo = c.el.querySelector('[data-cr-status]');
-                if (antigo) antigo.remove();
-                const e = CR.avisos.estadoDe(c.chave);
-                if (!e) return;
-                const bolinha = document.createElement('div');
-                bolinha.setAttribute('data-cr-status', '1');
-                bolinha.title = e.texto;
-                bolinha.style.cssText = 'position:absolute;top:9px;right:10px;font-size:9px;';
-                bolinha.innerText = e.icone;
-                c.el.appendChild(bolinha);
-            }, 'status-card');
-        });
+        cardsPorChave.forEach(c => U.seguro(() => pintarCard(c.el, c.chave), 'status-card'));
     };
 
     CR.ui = {

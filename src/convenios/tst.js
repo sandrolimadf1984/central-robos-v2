@@ -1007,4 +1007,8 @@
         }
     });
 
+    /* Exportado só para os testes conseguirem rodar o painel guardado fora do
+       navegador (tests/tst-portal-falso.js). Não é usado em produção. */
+    CR.__tst = { motor: motorTST, casca: cascaHTML };
+
 })(window.CentralRobos);

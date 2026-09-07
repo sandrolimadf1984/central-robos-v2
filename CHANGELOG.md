@@ -5,6 +5,45 @@ Formato: o mais recente em cima.
 
 ---
 
+## [3.6.0] — 2026-09-07
+
+### Adicionado
+
+- **Convênio marcado fica com o card colorido.** Editando `status.json` no
+  GitHub, o card do convênio muda de cor na tela de todo mundo e ganha uma faixa
+  com o recado — `"Site com inconsistência"`, `"Robô sendo atualizado"`, o que
+  for escrito. Dá para ver de longe, sem abrir o convênio.
+  Nos estados mais sérios a Central ainda **pergunta antes de iniciar**.
+  Passo a passo em [docs/AVISOS.md](docs/AVISOS.md).
+- **Leitura do segundo plano na tela.** Enquanto a automação roda, o painel
+  mostra se o segundo plano está de pé e **quantas batidas por segundo** foram
+  medidas com a aba escondida. Se o navegador segurar a aba, aparece em vermelho
+  o tempo que ela ficou parada — em vez de o atendente descobrir só no fim.
+- 5 testes novos da marcação de convênio (35 no total)
+
+### Corrigido
+
+- **A Central barrava o evento que ela mesma usa para religar o som.** O disfarce
+  de visibilidade engolia o `visibilitychange`, e era ele que mandava religar o
+  som quando a aba voltava. Sem som, o Chrome deixa de tratar a aba como "tocando
+  algo" e pode **congelá-la por completo** — que é exatamente o que acontecia ao
+  minimizar.
+  Agora a Central **não barra evento nenhum**: o que faz o disfarce funcionar é a
+  propriedade `document.hidden`, e ela basta. Barrar evento já quebrou duas
+  coisas (este som e o `blur` dos robôs, na 3.5.1); esse caminho foi eliminado.
+- O som passou a ser religado por três gatilhos (`visibilitychange`, `focus`,
+  `pageshow`) e também pelo vigia de 1 em 1 segundo.
+- **Automação incompleta deixou de ser chamada de "concluída".** Se sobrou
+  código, o painel mostra em vermelho **quantos e quais faltaram**, e o histórico
+  registra como interrompida. Antes o robô podia encerrar no meio e a tela dizia
+  "✅ concluída" — o atendente fechava a guia achando que estava tudo lá.
+
+### Removido
+
+- A bolinha de status no canto do card, substituída pelo card colorido inteiro
+
+---
+
 ## [3.5.1] — 2026-09-07
 
 **Achada a causa do primeiro código do TST — e o culpado era eu.**
