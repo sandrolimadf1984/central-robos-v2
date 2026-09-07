@@ -150,20 +150,22 @@ function carregarRobo(win) {
 function rodarJanelinha(portal, fila, limiteMs) {
     return new Promise(resolve => {
         const CR = carregarRobo(portal.win);
-        const casca = CR.__tst.casca(fila, 'teste');
+        const casca = CR.__tst.casca('teste');
 
-        const dj = new JSDOM(casca, { runScripts: 'outside-only', pretendToBeVisual: true });
+        /* Nasce igual ao navegador: a casca é o HTML, os dados entram como
+           TEXTO atribuído à janela, e o motor entra como elemento de script
+           que o próprio documento executa. É o caminho de produção inteiro —
+           o teste antigo injetava os dados na mão e por isso não pegou o
+           defeito em que a fila chegava como texto. */
+        const dj = new JSDOM(casca, { runScripts: 'dangerously', pretendToBeVisual: true });
         const jw = dj.window;
         jw.opener = portal.win;
-        jw.__crTST = { fila: fila, versao: 'teste' };
         jw.close = () => { };
+        jw.__crTSTjson = JSON.stringify({ fila: fila, versao: 'teste' });
 
-        try {
-            jw.eval('(' + CR.__tst.motor.toString() + ')();');
-        } catch (e) {
-            portal.erro = e.message;
-            return resolve(portal);
-        }
+        const script = jw.document.createElement('script');
+        script.textContent = '(' + CR.__tst.motor.toString() + ')();';
+        jw.document.body.appendChild(script);
 
         const pronto = setInterval(() => {
             const recado = jw.document.getElementById('cr-recado');
@@ -281,6 +283,36 @@ function conferir(nome, ok, detalhe) {
     conferir('a ordem continua a da colagem',
         JSON.stringify(codsLento) === JSON.stringify(['40901220', '31001112', '40808010']),
         codsLento.join(' → '));
+
+    /* ── FILA CORROMPIDA ─────────────────────────────────────────
+       Foi assim que apareceu no portal real: a fila chegou como TEXTO e o
+       painel rodou com centenas de "itens" que eram letras soltas. O robô
+       tem de recusar e avisar, nunca mexer no portal com dado errado. */
+    console.log('\n  \x1b[1mCom a fila chegando corrompida (texto em vez de lista):\x1b[0m');
+    const ruim = await (function () {
+        return new Promise(resolve => {
+            const portal = montarPortal();
+            const CR = carregarRobo(portal.win);
+            const dj = new JSDOM(CR.__tst.casca('teste'),
+                { runScripts: 'dangerously', pretendToBeVisual: true });
+            const jw = dj.window;
+            jw.opener = portal.win;
+            jw.close = () => { };
+            jw.__crTSTjson = JSON.stringify({ fila: '[{"cod":"40901220"}]', versao: 'teste' });
+            const s = jw.document.createElement('script');
+            s.textContent = '(' + CR.__tst.motor.toString() + ')();';
+            jw.document.body.appendChild(s);
+            setTimeout(() => {
+                portal.painel = jw.document;
+                portal.ultimoStatus = jw.document.getElementById('cr-recado').innerText;
+                resolve(portal);
+            }, 1200);
+        });
+    })();
+
+    conferir('o painel recusa a fila e explica', /não chegaram direito/i.test(ruim.ultimoStatus || ''),
+        (ruim.ultimoStatus || '(sem recado)').split('\n')[0]);
+    conferir('e NADA é mexido no portal', ruim.lancados.length === 0 && ruim.recusas.length === 0);
 
     console.log('');
     if (problemas.length) {

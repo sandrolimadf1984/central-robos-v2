@@ -224,3 +224,27 @@ ninguém pede nada de novo a ela.
 
 Por isso, no TST, o progresso aparece na janelinha e não no painel do app: o
 painel do app deixa de existir no primeiro recarregamento.
+
+---
+
+### Não mande dado por dentro de HTML montado com texto
+
+A fila de códigos ia para a janelinha dentro de um `<script>` montado por
+concatenação de texto. No Chrome ela chegou **como texto** em vez de lista, e o
+painel rodou com 583 "itens" que eram letras soltas.
+
+Onde precisar entregar dado para outra janela: **atribua direto** (`janela.x =
+JSON.stringify(...)`) e injete o código como **elemento de script**, nunca por
+montagem de HTML.
+
+E confira do outro lado antes de usar: se a fila não for uma lista de códigos de
+verdade, pare e avise — nunca deixe o robô encostar no portal com dado duvidoso.
+
+---
+
+### Teste que injeta o dado na mão não testa o caminho de verdade
+
+O teste da janelinha passava enquanto o portal real falhava. Motivo: ele
+colocava os dados na janelinha **na mão**, pulando exatamente o trecho quebrado.
+
+Teste sempre pelo caminho que roda em produção, do começo ao fim.

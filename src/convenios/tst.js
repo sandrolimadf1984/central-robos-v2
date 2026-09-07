@@ -59,8 +59,31 @@
      *  que é justamente o que se quer evitar.
      * ──────────────────────────────────────────────────────────── */
     function motorTST() {
-        var dados = window.__crTST || {};
-        var fila = dados.fila || [];
+        /* Os dados chegam como TEXTO puro numa propriedade da janela.
+           Já vieram corrompidos por dentro do HTML uma vez (a fila chegou
+           como texto e o painel rodou com 583 "itens" que eram letras),
+           então aqui a leitura é desconfiada: aceita texto ou objeto, e
+           confere item por item antes de deixar o robô encostar no portal. */
+        var dados = {};
+        try {
+            var bruto = window.__crTSTjson;
+            if (typeof bruto === "string") dados = JSON.parse(bruto);
+            else if (window.__crTST) {
+                dados = (typeof window.__crTST === "string")
+                    ? JSON.parse(window.__crTST) : window.__crTST;
+            }
+        } catch (e) { dados = {}; }
+
+        var fila = dados.fila;
+        if (typeof fila === "string") {
+            try { fila = JSON.parse(fila); } catch (e) { fila = null; }
+        }
+
+        var filaValida = Array.isArray(fila) && fila.length > 0 &&
+            fila.every(function (i) {
+                return i && typeof i.cod === "string" && /^\d{8}$/.test(i.cod) && i.qtd > 0;
+            });
+
         var portal = window.opener;
 
         var parado = false;
@@ -429,6 +452,25 @@
             setTimeout(function () { b.innerText = "📋 COPIAR RELATÓRIO"; }, 2000);
         };
 
+        /* TRAVA: sem fila boa, não começa. Melhor parar com uma mensagem
+           clara do que sair mexendo no portal com dado errado. */
+        if (!filaValida) {
+            fila = [];
+            pintar(false);
+            avisar("❌ Os códigos não chegaram direito nesta janelinha.\n\n" +
+                "Recebido: " + (Array.isArray(dados.fila)
+                    ? dados.fila.length + " item(ns), mas em formato inesperado"
+                    : "um valor do tipo " + (typeof dados.fila)) + ".\n\n" +
+                "Feche esta janelinha, volte ao portal e clique em INICIAR de novo. " +
+                "Se repetir, use COPIAR RELATÓRIO e mande para o Sandro.", "#ff6b5e");
+            registrar('<span style="color:#ff6b5e;">a fila chegou inválida — nada foi feito no portal</span>');
+            document.getElementById("cr-parar").innerText = "✖ FECHAR ESTA JANELA";
+            return;
+        }
+
+        registrar(fila.length + " código(s) recebidos: " +
+            fila.map(function (i) { return i.cod + (i.qtd > 1 ? "×" + i.qtd : ""); }).join(", "));
+
         pintar(true);
         rodar();
     }
@@ -436,8 +478,7 @@
     /* ────────────────────────────────────────────────────────────
      *  A CASCA DA JANELINHA — mesmo visual do painel do app
      * ──────────────────────────────────────────────────────────── */
-    function cascaHTML(fila, versao) {
-        var caixa = function (conteudo) { return conteudo; };
+    function cascaHTML(versao) {
         return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
             '<title>TST — Central de Automação</title><style>' +
             'body{margin:0;padding:14px;background:linear-gradient(180deg,#0c1322 0%,#0a0f1c 100%);' +
@@ -483,8 +524,6 @@
             '<button id="cr-copiar" style="margin-top:8px;background:#0e1a2e;color:#9db4d8;border:1px solid #223a5e;">' +
             '📋 COPIAR RELATÓRIO</button>' +
 
-            '<script>window.__crTST=' + JSON.stringify({ fila: fila, versao: versao }) + ';<\/script>' +
-            '<script>(' + motorTST.toString() + ')();<\/script>' +
             '</body></html>';
     }
 
@@ -517,8 +556,22 @@
                 return;
             }
 
-            janela.document.write(cascaHTML(fila, CR.versao || ""));
+            /* A casca vai por document.write; os DADOS e o MOTOR, não.
+               Passar dado dentro do HTML já deu errado uma vez: a fila
+               chegou como texto na janelinha. Agora o dado é atribuído
+               direto, como texto simples (que sobrevive ao recarregamento
+               desta página), e o motor entra como elemento de script. */
+            var casca = cascaHTML(CR.versao || "");
+            try { janela.document.open(); } catch (e) { }
+            janela.document.write(casca);
             janela.document.close();
+
+            janela.__crTSTjson = JSON.stringify({ fila: fila, versao: CR.versao || "" });
+
+            var script = janela.document.createElement("script");
+            script.textContent = "(" + motorTST.toString() + ")();";
+            janela.document.body.appendChild(script);
+
             try { janela.focus(); } catch (e) { }
 
             /* Explica na tela do app por que o painel foi para outra janela.

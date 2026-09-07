@@ -5,6 +5,43 @@ Formato: o mais recente em cima.
 
 ---
 
+## [3.4.1] — 2026-09-07
+
+Correção do defeito visto no primeiro uso real da janelinha: o painel abriu
+dizendo **"Item 1 de 583"** e **"undefined"**, com 11 códigos colados.
+
+### O que era
+
+Os códigos iam para a janelinha **dentro do HTML**, num `<script>` montado por
+texto. No Chrome esse caminho entregou a fila **como texto** em vez de lista —
+por isso o painel contou 583 "itens" (as letras do texto) e o primeiro item veio
+`undefined`. Nada foi mexido no portal, mas o painel ficou parado.
+
+O teste da versão anterior não pegou isso porque ele **injetava os dados na mão**
+na janelinha, pulando justamente o trecho que falhava.
+
+### Corrigido
+
+- Os dados **não passam mais por dentro do HTML**. A casca vai por
+  `document.write`; a fila é atribuída direto à janela como texto simples; e o
+  motor entra como elemento de script. Sem montagem de HTML no meio, não há como
+  o dado se perder na tradução.
+- **Trava de entrada.** Antes de encostar no portal, o painel confere item por
+  item se a fila é uma lista de códigos de 8 dígitos com quantidade. Se não for,
+  ele **para, explica o que recebeu e não mexe em nada**.
+- O painel agora registra, na primeira linha, quais códigos recebeu — dá para
+  conferir de bate-pronto se chegou tudo.
+
+### Adicionado
+
+- O teste da réplica passou a nascer **exatamente como no navegador**: casca por
+  `document.write`, dados por atribuição, motor por elemento de script. É o
+  caminho de produção inteiro.
+- Cenário novo no teste: **fila corrompida**. Confere que o painel recusa,
+  explica, e que nada é mexido no portal.
+
+---
+
 ## [3.4.0] — 2026-09-06
 
 Correção da 3.3.0 depois do teste no portal real: **a moldura não serve para o
