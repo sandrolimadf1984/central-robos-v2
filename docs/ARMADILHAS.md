@@ -191,3 +191,36 @@ usuário**. Robô que usa só essa checagem pode ignorar um botão visível.
 
 Confira por três caminhos: `offsetParent`, `getClientRects().length` e o
 `position` calculado.
+
+---
+
+### A moldura RECARREGA o portal — e isso nem sempre é inofensivo
+
+Para colocar o portal dentro do quadro, a moldura precisa **buscar a página de
+novo**. Onde a tela atual veio de um envio de formulário (POST), essa nova busca
+devolve a **tela inicial** do convênio, não a tela em que o atendente estava.
+
+Foi o que aconteceu no TST: ao iniciar, a tela voltava para o começo.
+
+Antes de escolher `tipo: "moldura"` para um convênio, pergunte: *a tela em que a
+pessoa está sobrevive a um F5?* Se não sobreviver, a moldura não serve.
+
+A Central agora confere isso sozinha: se os campos esperados não estiverem na
+tela recarregada, ela desiste da moldura e devolve a página como estava.
+
+---
+
+### O TST só funciona com janelinha — e o motivo é físico
+
+O portal recarrega a página inteira a cada procedimento salvo. O app mora dentro
+dessa página, então morre junto. Não há como contornar por dentro:
+
+- rodar na própria página → morre no primeiro código;
+- rodar na moldura → a tela volta para o início (acima).
+
+A janelinha é a única coisa que sobrevive, porque ela não recarrega. Ela pilota
+a aba do portal pelo `window.opener`, e a aba continua na tela certa porque
+ninguém pede nada de novo a ela.
+
+Por isso, no TST, o progresso aparece na janelinha e não no painel do app: o
+painel do app deixa de existir no primeiro recarregamento.

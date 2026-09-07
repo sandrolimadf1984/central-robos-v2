@@ -35,7 +35,7 @@
         "TRE":              { icone: "🗳️", cor: "#7f9fc4", desc: "Automação para Tribunal Regional Eleitoral",     modo: "prompt" },
         "TRF":              { icone: "📖", cor: "#1d9e75", desc: "Automação para Tribunal Regional Federal",       modo: "prompt" },
         "TRT":              { icone: "🤝", cor: "#e67e22", desc: "Automação para Tribunal Regional do Trabalho",   modo: "painel", txt: "g-txt",         btn: "g-btn" },
-        "TST":              { icone: "🔨", cor: "#e24b4a", desc: "Automação para Tribunal Superior do Trabalho",   modo: "tst" }
+        "TST":              { icone: "🔨", cor: "#e24b4a", desc: "Automação para Tribunal Superior do Trabalho",   modo: "prompt", semContagem: true }
     };
 
     CR.statusRobo = {

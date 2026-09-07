@@ -145,6 +145,46 @@ function carregarRobo(win) {
     return win.CentralRobos;
 }
 
+/* Simula a JANELINHA: uma segunda janela, com o painel dentro, cujo
+   opener é a aba do portal. É assim que ela funciona no navegador. */
+function rodarJanelinha(portal, fila, limiteMs) {
+    return new Promise(resolve => {
+        const CR = carregarRobo(portal.win);
+        const casca = CR.__tst.casca(fila, 'teste');
+
+        const dj = new JSDOM(casca, { runScripts: 'outside-only', pretendToBeVisual: true });
+        const jw = dj.window;
+        jw.opener = portal.win;
+        jw.__crTST = { fila: fila, versao: 'teste' };
+        jw.close = () => { };
+
+        try {
+            jw.eval('(' + CR.__tst.motor.toString() + ')();');
+        } catch (e) {
+            portal.erro = e.message;
+            return resolve(portal);
+        }
+
+        const pronto = setInterval(() => {
+            const recado = jw.document.getElementById('cr-recado');
+            if (recado && recado.style.display === 'block') {
+                clearInterval(pronto);
+                portal.ultimoStatus = recado.innerText;
+                portal.painel = jw.document;
+                resolve(portal);
+            }
+        }, 100);
+
+        setTimeout(() => {
+            clearInterval(pronto);
+            const recado = jw.document.getElementById('cr-recado');
+            portal.ultimoStatus = recado ? recado.innerText : '(sem recado)';
+            portal.painel = jw.document;
+            resolve(portal);
+        }, limiteMs);
+    });
+}
+
 function fazerCtx(portal, terminou) {
     return {
         doc: () => portal.doc,
@@ -157,11 +197,17 @@ function fazerCtx(portal, terminou) {
 }
 
 function rodar(qualRobo, texto, limiteMs, lento) {
+    if (qualRobo === 'novo') {
+        const portal = montarPortal(lento);
+        portal.win.alert = () => { };
+        const fila = require(path.join(RAIZ, 'src/core/utils.js')).montarFila(texto);
+        return rodarJanelinha(portal, fila, limiteMs);
+    }
     return new Promise(resolve => {
         const portal = montarPortal(lento);
         portal.win.alert = () => { portal.recusas.push('alert do robô antigo'); };
         const CR = carregarRobo(portal.win);
-        const robo = qualRobo === 'novo' ? CR.roboMoldura['TST'] : CR.legado['TST_DESATIVADO_MOLDURA'];
+        const robo = CR.legado['TST_DESATIVADO_MOLDURA'];
 
         let acabou = false;
         const terminar = () => {
@@ -212,8 +258,12 @@ function conferir(nome, ok, detalhe) {
         (novo.lancados.filter(l => l.cod === '31001112')[0] || {}).qtd === '2');
     conferir('nenhuma tentativa de salvar com o campo vazio', novo.recusas.length === 0,
         novo.recusas.length + ' recusa(s)');
-    conferir('o robô avisa que terminou',
+    conferir('o painel avisa que terminou',
         /conclu/i.test(novo.ultimoStatus || ''), (novo.ultimoStatus || '').split('\n')[0]);
+    conferir('o painel mostra a contagem certa',
+        (novo.painel.getElementById('cr-feitos').innerText || '') === '✓ 3 concluídos',
+        novo.painel.getElementById('cr-feitos').innerText + ' · ' +
+        novo.painel.getElementById('cr-pct').innerText);
 
     /* ── PORTAL LENTO ────────────────────────────────────────────
        Foi num portal lento que o robô do ASSEDF passou a mandar o mesmo

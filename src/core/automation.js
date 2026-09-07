@@ -613,6 +613,52 @@
             } catch (e) { pronto = false; }
 
             if (pronto) {
+                /* ── TRAVA DE SEGURANÇA DA MOLDURA ─────────────────────
+                   A moldura BUSCA a página de novo. Em portal cuja tela
+                   atual é resultado de um envio de formulário (o TST é
+                   assim), essa nova busca devolve a TELA INICIAL do
+                   convênio — e o atendente vê a tela dele sumir sem
+                   entender por quê.
+
+                   Antes de soltar o robô, conferimos se os campos que
+                   ele espera estão na tela recarregada. Se não estiverem,
+                   desistimos da moldura, devolvemos a página exatamente
+                   como estava e explicamos o que houve. */
+                const ficha = CR.fichas[nome] || {};
+                const esperados = (ficha.portal && ficha.portal.seletores) || [];
+                if (esperados.length) {
+                    let achou = false;
+                    try {
+                        const d = iframe.contentWindow.document;
+                        for (let k = 0; k < esperados.length; k++) {
+                            if (d.querySelector(esperados[k])) { achou = true; break; }
+                        }
+                    } catch (e) { achou = true; }   // não deu para olhar: não acuso à toa
+
+                    /* margem: o portal pode ainda estar desenhando */
+                    if (!achou && tentativas < 60) return;
+
+                    if (!achou) {
+                        clearInterval(espera);
+                        fecharEspelho();
+                        CR.estado.rodando = false;
+                        limparVigias();
+                        CR.motor.encerrarModoAutomacao();
+                        CR.ui.modoIniciar();
+                        CR.log.aviso(nome + ': moldura descartada — a tela recarregada não tem ' +
+                            'os campos que o robô espera (' + esperados.join(', ') + ')');
+                        CR.ui.erroDetalhado({
+                            convenio: nome,
+                            problema: 'A moldura recarregou o portal e caiu numa tela diferente: ' +
+                                'os campos que o robô precisa não estão nela.',
+                            causa: 'Neste portal a tela em que você estava é resultado de um envio ' +
+                                'de formulário. Pedir o endereço de novo devolve a tela inicial. ' +
+                                'Sua página foi devolvida exatamente como estava — nada foi perdido.'
+                        });
+                        return;
+                    }
+                }
+
                 clearInterval(espera);
                 U.seguro(() => CR.motor.manterAcordada(iframe), 'moldura-acordada');
                 CR.ui.status('▶ Iniciando automação...', '#4dc3ff');

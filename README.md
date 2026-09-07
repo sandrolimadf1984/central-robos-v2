@@ -2,11 +2,11 @@
 
 # 🤖 Central de Automação — CLTzinho Digital
 
-**Versão 3.3.0 · ambiente de testes**
+**Versão 3.4.0 · ambiente de testes**
 
 *Cole os códigos uma vez. O robô digita por você.*
 
-![Versão](https://img.shields.io/badge/vers%C3%A3o-3.3.0-2d7dff)
+![Versão](https://img.shields.io/badge/vers%C3%A3o-3.4.0-2d7dff)
 ![Convênios](https://img.shields.io/badge/conv%C3%AAnios-30-4dc3ff)
 ![Robôs](https://img.shields.io/badge/rob%C3%B4s-25-1a5bcc)
 ![Testes](https://img.shields.io/badge/testes-30%20passando-2ecc71)
@@ -65,9 +65,11 @@ autorização. Mexer num robô afeta todos os que dependem dele.
 | **CNU UNIMED** (2) | CNU Unimed, Proasa |
 | Individuais (14) | Affego, Amil, Assedf/Vida Card, Câmara dos Deputados, Inas GDF, Planassiste MPU, Plenum, Postal (Correios), Sul America, TJDF, TRE, TRF, TRT, TST |
 
-> **Sobre o TST:** desde a versão 3.3.0 ele roda na moldura, sem janela
-> separada e com a contagem no painel, como os demais. A janelinha antiga
-> continua guardada e entra sozinha se o portal recusar ser embutido.
+> **Sobre o TST:** é o único convênio com painel em janela separada, e isso é
+> físico: o portal recarrega a página inteira a cada item e leva o app junto.
+> A janelinha não recarrega, então sobrevive. Desde a 3.4.0 ela tem a cara do
+> app — barra de progresso, contagem, andamento — e continua trabalhando
+> minimizada.
 
 > **Sobre o TRE:** tem robô próprio, mas é uma **cópia do PM** — o portal mudou em
 > agosto/2026 e ficou igual ao da Polícia Militar (mesmo campo `#HandleTermo`).
@@ -103,7 +105,8 @@ Os robôs nasceram em épocas diferentes e existem quatro arquiteturas convivend
 | Forma | Quando é usada | Quem usa |
 |---|---|---|
 | **padrão** | O robô roda na própria página do portal | a maioria |
-| **moldura** | O portal é exibido dentro do painel do app. Usada quando a tela do portal **recarrega** a cada item (senão o robô morreria junto) | TRF, Postal, Câmara, Planassiste, TST |
+| **moldura** | O portal é exibido dentro do painel do app. Usada quando a tela do portal **recarrega** a cada item (senão o robô morreria junto). Só serve onde a tela atual sobrevive a um F5 | TRF, Postal, Câmara, Planassiste |
+| **janelinha** | Um painel numa janela separada, que não recarrega e por isso sobrevive, pilotando a aba do portal de fora | TST |
 | **janela** | O app abre a tela de autorização e preenche nela | CNU Unimed / Proasa |
 | **agente injetado** | O robô coloca um ajudante **dentro** da janela do portal, com botão próprio | só o ASSEDF |
 
@@ -275,7 +278,7 @@ Se a V3 der problema, tem três saídas, da mais rápida para a mais completa:
 1. **Voltar para a Central de sempre** — o favorito antigo continua funcionando.
    Ela nunca foi tocada.
 2. **Fixar uma versão anterior da V3** — no favorito, troque `central.js` por
-   `releases/v3.3.0/central-completo.js`.
+   `releases/v3.4.0/central-completo.js`.
 3. **Rodar a Central de hoje a partir daqui** — no favorito, aponte para
    `releases/v2.1.0-legado/central.js`. Esse arquivo é **byte a byte idêntico**
    ao que está em produção hoje (MD5 `183ee948d18abb5ec368c077797e4c23`).

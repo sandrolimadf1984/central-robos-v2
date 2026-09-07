@@ -5,6 +5,57 @@ Formato: o mais recente em cima.
 
 ---
 
+## [3.4.0] — 2026-09-06
+
+Correção da 3.3.0 depois do teste no portal real: **a moldura não serve para o
+TST**, e o motivo vale como regra para o projeto inteiro.
+
+### O que o teste real mostrou
+
+Ao iniciar, a tela do portal voltava para a **página inicial do convênio**.
+
+Causa: a moldura precisa **buscar a página de novo** para colocá-la dentro do
+quadro. No TST, a tela em que o atendente está é resultado de um **envio de
+formulário** — pedir o mesmo endereço de novo devolve a tela inicial, não a guia.
+
+Isso vale para qualquer portal assim, não só o TST.
+
+### Alterado
+
+- **O TST voltou para a janelinha**, que é a única arquitetura que funciona
+  naquele portal: ela não recarrega, então sobrevive, e a aba do portal continua
+  na tela certa porque ninguém pede nada de novo a ela.
+- **A janelinha virou um painel de verdade**, com a cara do app: barra de
+  progresso, percentual, código atual, item X de Y, concluídos / pendentes /
+  erros, andamento e botão de copiar relatório.
+- **A janelinha continua trabalhando minimizada** — ela tem a própria batida em
+  Web Worker. Some a ressalva do TST que existia desde a 3.1.0.
+- O painel do app explica, ao iniciar, por que o acompanhamento foi para a
+  janelinha.
+
+### Mantido da 3.3.0
+
+- O primeiro código entra (escreve e confere, até 6 vezes)
+- Nada entra duas vezes (conferência por contagem, "entrou" vence "repetir")
+- A ordem da colagem é respeitada
+
+### Adicionado
+
+- **Trava de segurança da moldura.** Antes de soltar qualquer robô de moldura, a
+  Central confere se os campos que ele espera estão na tela recarregada. Se não
+  estiverem, ela desiste, **devolve a página exatamente como estava** e explica o
+  que houve. Esta falha teria sido explicada em vez de confusa.
+- O teste da réplica do TST passou a exercitar o painel da janelinha de verdade
+  (duas janelas, opener e tudo), conferindo inclusive a contagem na tela
+
+### Guardados, desativados
+
+`TST_JANELINHA_ORIGINAL` (a do colega), `TST_MOLDURA_DESATIVADA` (a tentativa da
+3.3.0) e `TST_DESATIVADO_MOLDURA` (a primeira tentativa). Para usar qualquer uma,
+troque `ativo: false` por `true` e desative a de cima.
+
+---
+
 ## [3.3.0] — 2026-09-06
 
 Reescrita do robô do TST. **É a primeira mudança em robô que estava no ar** —
